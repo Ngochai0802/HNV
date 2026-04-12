@@ -1,0 +1,15 @@
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.AssemblyInfo.cs
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\bin\Debug\net10.0\MedicalDiagnosis.Infrastructure.deps.json
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\bin\Debug\net10.0\MedicalDiagnosis.Infrastructure.dll
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\bin\Debug\net10.0\MedicalDiagnosis.Infrastructure.pdb
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\bin\Debug\net10.0\MedicalDiagnosis.Core.dll
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\bin\Debug\net10.0\MedicalDiagnosis.Core.pdb
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalD.6567CDC8.Up2Date
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.dll
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\refint\MedicalDiagnosis.Infrastructure.dll
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.pdb
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\ref\MedicalDiagnosis.Infrastructure.dll

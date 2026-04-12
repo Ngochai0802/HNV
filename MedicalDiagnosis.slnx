@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="MedicalDiagnosis.API/MedicalDiagnosis.API.csproj" />
+  <Project Path="MedicalDiagnosis.Core/MedicalDiagnosis.Core.csproj" />
+  <Project Path="MedicalDiagnosis.Infrastructure/MedicalDiagnosis.Infrastructure.csproj" />
+</Solution>
