@@ -151,6 +151,7 @@ public class ChatController : ControllerBase
             .Select(m => new
             {
                 m.Id,
+                m.SenderId,
                 m.Content,
                 m.SenderType,
                 m.IsAiGenerated,

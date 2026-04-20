@@ -1,3 +1,4 @@
+using MedicalDiagnosis.API.Services;
 using MedicalDiagnosis.Core.DTOs;
 using MedicalDiagnosis.Core.Entities;
 using MedicalDiagnosis.Infrastructure.Data;
@@ -16,12 +17,14 @@ public class ImageController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _env;
     private readonly HttpClient _httpClient;
+    private readonly AutoAssignService _autoAssign;
 
-    public ImageController(AppDbContext context, IWebHostEnvironment env, IHttpClientFactory httpClientFactory)
+    public ImageController(AppDbContext context, IWebHostEnvironment env, IHttpClientFactory httpClientFactory, AutoAssignService autoAssign)
     {
         _context    = context;
         _env        = env;
         _httpClient = httpClientFactory.CreateClient("AI");
+        _autoAssign = autoAssign;
     }
 
     // POST /api/images/upload
@@ -82,6 +85,12 @@ public class ImageController : ControllerBase
 
         // Gọi AI service (background — không chờ)
         _ = CallAiServiceAsync(image.Id, inference.Id);
+
+        // ✅ Tự động phân công nếu chế độ đang BẬT
+        if (_autoAssign.IsEnabled)
+        {
+            await AutoAssignImageAsync(image);
+        }
 
         return Ok(new { message = "Upload thành công", imageId = image.Id });
     }
@@ -184,6 +193,66 @@ public class ImageController : ControllerBase
         catch
         {
             // AI service chưa chạy → bỏ qua, không crash app
+        }
+    }
+
+    // Tự động phân công ảnh cho bác sĩ phù hợp nhất
+    private async Task AutoAssignImageAsync(MedicalImage image)
+    {
+        try
+        {
+            var specialtyKeywords = new[] { "phổi", "hô hấp", "x-quang", "chẩn đoán hình ảnh" };
+
+            var doctors = await _context.Doctors
+                .Include(d => d.User)
+                .Where(d => d.User!.IsActive && !d.User.IsDeleted)
+                .Select(d => new
+                {
+                    d.UserId,
+                    d.User!.FullName,
+                    d.Specialization,
+                    AssignedCount = _context.ImageAssignments
+                        .Count(a => a.DoctorId == d.UserId && a.Status != "completed"),
+                    LastAssignedAt = _context.ImageAssignments
+                        .Where(a => a.DoctorId == d.UserId)
+                        .Max(a => (DateTime?)a.AssignedAt)
+                })
+                .ToListAsync();
+
+            if (doctors.Count == 0) return;
+
+            var bestDoctor = doctors
+                .OrderByDescending(d => (d.Specialization != null &&
+                    specialtyKeywords.Any(k => d.Specialization.ToLower().Contains(k))) ? 2 : 0)
+                .ThenBy(d => d.AssignedCount)
+                .ThenBy(d => d.LastAssignedAt ?? DateTime.MinValue)
+                .First();
+
+            _context.ImageAssignments.Add(new ImageAssignment
+            {
+                ImageId    = image.Id,
+                DoctorId   = bestDoctor.UserId,
+                AssignedBy = image.PatientId, // auto-assign bởi hệ thống
+                AssignedAt = DateTime.Now,
+                Status     = "pending"
+            });
+
+            image.Status = "assigned";
+
+            _context.Notifications.Add(new Notification
+            {
+                UserId    = bestDoctor.UserId,
+                Title     = "Ca mới được tự động phân công",
+                Content   = $"Bạn được tự động phân công xem xét ảnh #{image.Id}",
+                IsRead    = false,
+                CreatedAt = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+        }
+        catch
+        {
+            // Nếu auto-assign lỗi → bỏ qua, admin phân công thủ công sau
         }
     }
 }

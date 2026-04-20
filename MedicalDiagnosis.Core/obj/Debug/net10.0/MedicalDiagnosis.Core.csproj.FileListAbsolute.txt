@@ -9,3 +9,4 @@ C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Core\obj\Debug\net10.0\Med
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Core\obj\Debug\net10.0\refint\MedicalDiagnosis.Core.dll
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.pdb
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Core\obj\Debug\net10.0\ref\MedicalDiagnosis.Core.dll
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.sourcelink.json

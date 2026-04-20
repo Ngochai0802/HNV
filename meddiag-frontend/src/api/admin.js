@@ -13,3 +13,9 @@ export const getUsers = () => api.get("/admin/users");
 export const toggleUser = (id) => api.patch(`/admin/users/${id}/toggle`);
 
 export const createDoctor = (data) => api.post("/admin/doctors", data);
+
+export const autoAssignImages = () => api.post("/admin/images/auto-assign");
+
+export const getAutoAssignStatus = () => api.get("/admin/auto-assign/status");
+
+export const toggleAutoAssign = () => api.post("/admin/auto-assign/toggle");

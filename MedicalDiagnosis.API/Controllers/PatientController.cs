@@ -85,13 +85,23 @@ public class PatientController : ControllerBase
     }
 
     // ✅ FIX BUG 1
-    // GET /api/patient/doctors
+    // GET /api/patient/doctors — chỉ trả về bác sĩ được phân công cho bệnh nhân
     [HttpGet("doctors")]
     public async Task<IActionResult> GetDoctors()
     {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        // Lấy danh sách DoctorId đã được phân công ảnh của bệnh nhân này
+        var assignedDoctorIds = await _context.ImageAssignments
+            .Include(a => a.Image)
+            .Where(a => a.Image!.PatientId == userId)
+            .Select(a => a.DoctorId)
+            .Distinct()
+            .ToListAsync();
+
         var doctors = await _context.Doctors
             .Include(d => d.User)
-            .Where(d => d.User!.IsActive && !d.User.IsDeleted)
+            .Where(d => assignedDoctorIds.Contains(d.UserId) && d.User!.IsActive && !d.User.IsDeleted)
             .Select(d => new
             {
                 d.UserId,

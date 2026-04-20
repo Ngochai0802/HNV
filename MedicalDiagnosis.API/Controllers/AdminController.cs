@@ -1,3 +1,4 @@
+using MedicalDiagnosis.API.Services;
 using MedicalDiagnosis.Core.Entities;
 using MedicalDiagnosis.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -13,10 +14,35 @@ namespace MedicalDiagnosis.API.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly AutoAssignService _autoAssign;
 
-    public AdminController(AppDbContext context)
+    public AdminController(AppDbContext context, AutoAssignService autoAssign)
     {
         _context = context;
+        _autoAssign = autoAssign;
+    }
+
+    // =========================================
+    // CHẾ ĐỘ TỰ ĐỘNG PHÂN CÔNG
+    // =========================================
+
+    // GET /api/admin/auto-assign/status
+    [HttpGet("auto-assign/status")]
+    public IActionResult GetAutoAssignStatus()
+    {
+        return Ok(new { isEnabled = _autoAssign.IsEnabled });
+    }
+
+    // POST /api/admin/auto-assign/toggle
+    [HttpPost("auto-assign/toggle")]
+    public IActionResult ToggleAutoAssign()
+    {
+        var newState = _autoAssign.Toggle();
+        return Ok(new
+        {
+            isEnabled = newState,
+            message = newState ? "Đã BẬT chế độ tự động phân công" : "Đã TẮT chế độ tự động phân công"
+        });
     }
 
     // =========================================
@@ -172,6 +198,112 @@ public class AdminController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Phân công thành công" });
+    }
+
+    // =========================================
+    // TỰ ĐỘNG PHÂN CÔNG ẢNH
+    // =========================================
+
+    // POST /api/admin/images/auto-assign
+    [HttpPost("images/auto-assign")]
+    public async Task<IActionResult> AutoAssignImages()
+    {
+        var adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        // 1. Lấy tất cả ảnh chưa phân công
+        var assignedImageIds = await _context.ImageAssignments
+            .Select(a => a.ImageId)
+            .ToListAsync();
+
+        var pendingImages = await _context.MedicalImages
+            .Where(m => m.Status == "pending" && !m.IsDeleted && !assignedImageIds.Contains(m.Id))
+            .OrderBy(m => m.UploadDate)
+            .ToListAsync();
+
+        if (pendingImages.Count == 0)
+            return Ok(new { assignedCount = 0, message = "Không có ảnh nào cần phân công" });
+
+        // 2. Lấy danh sách bác sĩ eligible
+        var eligibleDoctors = await _context.Doctors
+            .Include(d => d.User)
+            .Where(d => d.User!.IsActive && !d.User.IsDeleted)
+            .Select(d => new
+            {
+                d.UserId,
+                d.User!.FullName,
+                d.Specialization,
+                AssignedCount = _context.ImageAssignments
+                    .Count(a => a.DoctorId == d.UserId && a.Status != "completed"),
+                LastAssignedAt = _context.ImageAssignments
+                    .Where(a => a.DoctorId == d.UserId)
+                    .Max(a => (DateTime?)a.AssignedAt)
+            })
+            .ToListAsync();
+
+        if (eligibleDoctors.Count == 0)
+            return BadRequest(new { message = "Không có bác sĩ khả dụng" });
+
+        // 3. Sắp xếp theo tiêu chí ưu tiên
+        var specialtyKeywords = new[] { "phổi", "hô hấp", "x-quang", "chẩn đoán hình ảnh" };
+
+        var sortedDoctors = eligibleDoctors
+            .Select(d => new
+            {
+                d.UserId,
+                d.FullName,
+                d.Specialization,
+                d.AssignedCount,
+                d.LastAssignedAt,
+                SpecialtyScore = (d.Specialization != null &&
+                    specialtyKeywords.Any(k => d.Specialization.ToLower().Contains(k))) ? 2 : 0
+            })
+            .OrderByDescending(d => d.SpecialtyScore)
+            .ThenBy(d => d.AssignedCount)
+            .ThenBy(d => d.LastAssignedAt ?? DateTime.MinValue)
+            .ToList();
+
+        // 4. Phân công từng ảnh
+        int assignedCount = 0;
+        // Dùng dictionary để track số ca realtime khi phân công
+        var currentCounts = sortedDoctors.ToDictionary(d => d.UserId, d => d.AssignedCount);
+
+        foreach (var image in pendingImages)
+        {
+            // Chọn bác sĩ tốt nhất (re-sort theo currentCounts)
+            var bestDoctor = sortedDoctors
+                .OrderByDescending(d => d.SpecialtyScore)
+                .ThenBy(d => currentCounts[d.UserId])
+                .ThenBy(d => d.LastAssignedAt ?? DateTime.MinValue)
+                .First();
+
+            _context.ImageAssignments.Add(new ImageAssignment
+            {
+                ImageId    = image.Id,
+                DoctorId   = bestDoctor.UserId,
+                AssignedBy = adminId,
+                AssignedAt = DateTime.Now,
+                Status     = "pending"
+            });
+
+            image.Status = "assigned";
+
+            _context.Notifications.Add(new Notification
+            {
+                UserId    = bestDoctor.UserId,
+                Title     = "Ca mới được tự động phân công",
+                Content   = $"Bạn được phân công xem xét ảnh #{image.Id}",
+                IsRead    = false,
+                CreatedAt = DateTime.Now
+            });
+
+            // Cập nhật count cho bác sĩ vừa được assign
+            currentCounts[bestDoctor.UserId]++;
+            assignedCount++;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { assignedCount, message = $"Đã tự động phân công {assignedCount} ảnh cho các bác sĩ" });
     }
 
     // =========================================

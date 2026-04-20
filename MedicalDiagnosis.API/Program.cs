@@ -42,6 +42,7 @@ builder.Services.AddCors(options =>
 
 // 4. Services
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddSingleton<AutoAssignService>();
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddHttpClient("AI", c =>

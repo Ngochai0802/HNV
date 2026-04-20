@@ -169,3 +169,4 @@ C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.API\bin\Debug\net10.0\Scru
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.API\bin\Debug\net10.0\Swashbuckle.AspNetCore.Filters.dll
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.API\bin\Debug\net10.0\Swashbuckle.AspNetCore.Filters.Abstractions.dll
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.API\bin\Debug\net10.0\MedicalDiagnosis.API.staticwebassets.runtime.json
+C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.API\obj\Debug\net10.0\MedicalDiagnosis.API.sourcelink.json
