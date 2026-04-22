@@ -9,6 +9,7 @@ import {
   Bot,
   User,
   Stethoscope,
+  FileImage,
 } from "lucide-react";
 
 export default function DoctorChat() {
@@ -75,6 +76,11 @@ export default function DoctorChat() {
   const getPatient = (conv) => {
     return conv.participants?.find((p) => p.userId !== user?.id);
   };
+
+  // Lấy tin nhắn GẦN NHẤT có chứa context ca bệnh (để đúng với ca hiện tại)
+  const caseContextMsg = [...messages].reverse().find(
+    (m) => m.content?.startsWith("🩻")
+  );
 
   return (
     <div className="flex h-[calc(100vh-12rem)] bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -159,6 +165,33 @@ export default function DoctorChat() {
                 </div>
               );
             })()}
+
+            {/* Banner context ca bệnh (nếu có tin nhắn 🩻) */}
+            {caseContextMsg && (
+              <div className="mx-4 mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-start justify-between gap-4">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <FileImage size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-blue-700 mb-0.5">
+                      Ca bệnh đang được yêu cầu tư vấn
+                    </p>
+                    <p className="text-xs text-blue-600 line-clamp-2 whitespace-pre-wrap">
+                      {caseContextMsg.content.split("\n").slice(1, 3).join(" · ")}
+                    </p>
+                  </div>
+                </div>
+                {caseContextMsg.imageId && (
+                  <a
+                    href={`/doctor/cases/${caseContextMsg.imageId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold rounded-lg transition-colors"
+                  >
+                    Mở ca bệnh
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4">

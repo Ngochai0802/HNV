@@ -210,6 +210,52 @@ public class DoctorController : ControllerBase
 
         return Ok(new { message = "Cập nhật thành công" });
     }
+
+    // GET /api/doctor/profile
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfile()
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var user = await _context.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
+        if (user == null) return NotFound();
+
+        var doctor = await _context.Doctors
+            .FirstOrDefaultAsync(d => d.UserId == userId);
+
+        return Ok(new
+        {
+            user.Id,
+            user.FullName,
+            user.Email,
+            user.Username,
+            Role           = user.Role!.RoleName,
+            Specialization = doctor?.Specialization,
+            LicenseNumber  = doctor?.LicenseNumber,
+            YearsOfExperience = doctor?.YearsOfExperience
+        });
+    }
+
+    // PUT /api/doctor/profile — chỉ cho sửa FullName và Email
+    // Chuyên khoa, Số giấy phép, Năm kinh nghiệm do Admin quản lý
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateDoctorProfileRequest req)
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return NotFound();
+
+        user.FullName  = req.FullName ?? user.FullName;
+        user.Email     = req.Email    ?? user.Email;
+        user.UpdatedAt = DateTime.Now;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Cập nhật thành công" });
+    }
 }
 
 public class CreateDiagnosisRequest
@@ -223,4 +269,13 @@ public class CreateDiagnosisRequest
 public class UseSuggestionRequest
 {
     public bool IsUsed { get; set; }
+}
+
+public class UpdateDoctorProfileRequest
+{
+    public string? FullName           { get; set; }
+    public string? Email              { get; set; }
+    public string? Specialization     { get; set; }
+    public string? LicenseNumber      { get; set; }
+    public int?    YearsOfExperience  { get; set; }
 }

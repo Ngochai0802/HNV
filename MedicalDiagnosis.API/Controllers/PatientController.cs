@@ -78,6 +78,7 @@ public class PatientController : ControllerBase
                 diagnosis.FinalResult,
                 diagnosis.SeverityLevel,
                 diagnosis.CreatedAt,
+                DoctorId = diagnosis.DoctorId,
                 DoctorName = diagnosis.Doctor!.User!.FullName
             },
             AiResult = aiResult
@@ -114,6 +115,62 @@ public class PatientController : ControllerBase
         return Ok(doctors);
     }
 
+    // GET /api/patient/profile
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfile()
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var user = await _context.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
+        if (user == null) return NotFound();
+
+        var patient = await _context.Patients
+            .FirstOrDefaultAsync(p => p.UserId == userId);
+
+        return Ok(new
+        {
+            user.Id,
+            user.FullName,
+            user.Email,
+            user.Username,
+            Role = user.Role!.RoleName,
+            DateOfBirth = patient?.DateOfBirth,
+            Gender      = patient?.Gender,
+            Phone       = patient?.Phone,
+            Address     = patient?.Address
+        });
+    }
+
+    // PUT /api/patient/profile
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdatePatientProfileRequest req)
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return NotFound();
+
+        var patient = await _context.Patients.FindAsync(userId);
+        if (patient == null) return NotFound();
+
+        // Cập nhật User
+        user.FullName  = req.FullName ?? user.FullName;
+        user.Email     = req.Email    ?? user.Email;
+        user.UpdatedAt = DateTime.Now;
+
+        // Cập nhật Patient
+        if (req.DateOfBirth.HasValue) patient.DateOfBirth = req.DateOfBirth;
+        if (req.Gender  != null)     patient.Gender      = req.Gender;
+        if (req.Phone   != null)     patient.Phone       = req.Phone;
+        if (req.Address != null)     patient.Address     = req.Address;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Cập nhật thành công" });
+    }
+
     // ✅ FIX BUG 2 (QUAN TRỌNG)
     // GET /api/patient/my-doctor
     [HttpGet("my-doctor")]
@@ -139,4 +196,14 @@ public class PatientController : ControllerBase
             ImageName  = assignment.Image!.FileName
         });
     }
+}
+
+public class UpdatePatientProfileRequest
+{
+    public string?    FullName    { get; set; }
+    public string?    Email       { get; set; }
+    public DateTime?  DateOfBirth { get; set; }
+    public string?    Gender      { get; set; }
+    public string?    Phone       { get; set; }
+    public string?    Address     { get; set; }
 }

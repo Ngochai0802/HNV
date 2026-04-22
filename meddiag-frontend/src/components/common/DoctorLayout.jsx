@@ -8,12 +8,15 @@ import {
   LogOut,
   HeartPulse,
 } from "lucide-react";
+import { useState } from "react";
 import useAuthStore from "../../store/useAuthStore";
+import ProfileModal from "./ProfileModal";
 
 export default function DoctorLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -126,9 +129,13 @@ export default function DoctorLayout() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold text-xs border border-teal-200">
+            <button
+              onClick={() => setProfileOpen(true)}
+              title="Xem thông tin cá nhân"
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center text-white font-bold text-sm border-2 border-teal-200 shadow-md hover:scale-110 hover:shadow-lg hover:shadow-teal-500/30 transition-all duration-200 cursor-pointer"
+            >
               {user?.fullName?.charAt(0).toUpperCase()}
-            </div>
+            </button>
           </div>
         </header>
 
@@ -136,6 +143,13 @@ export default function DoctorLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        role="doctor"
+      />
     </div>
   );
 }

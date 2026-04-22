@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { getUsers, toggleUser, createDoctor } from "../../api/admin";
 import toast from "react-hot-toast";
-import { UserPlus, X } from "lucide-react";
+import { UserPlus, X, Search } from "lucide-react";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("patient");
+  const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     username: "",
@@ -69,6 +71,14 @@ export default function Users() {
     doctor: "bg-blue-100 text-blue-700",
     patient: "bg-green-100 text-green-700",
   };
+
+  const filteredUsers = users.filter((u) => {
+    const matchesTab = u.role === activeTab;
+    const matchesSearch = 
+      u.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      u.username.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
   if (loading)
     return (
@@ -150,6 +160,41 @@ export default function Users() {
         </div>
       )}
 
+      {/* Tabs and Search */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex bg-slate-100 p-1 rounded-xl w-max">
+          <button
+            onClick={() => setActiveTab("patient")}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition ${activeTab === "patient" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+          >
+            Bệnh nhân
+          </button>
+          <button
+            onClick={() => setActiveTab("doctor")}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition ${activeTab === "doctor" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+          >
+            Bác sĩ
+          </button>
+          <button
+            onClick={() => setActiveTab("admin")}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition ${activeTab === "admin" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+          >
+            Admin
+          </button>
+        </div>
+
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Tìm theo tên, username..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full md:w-72 bg-white"
+          />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+        </div>
+      </div>
+
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-100">
@@ -172,9 +217,16 @@ export default function Users() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {users.map((u) => (
-              <tr key={u.id} className="hover:bg-slate-50 transition">
-                <td className="px-5 py-4 font-medium text-slate-800">
+            {filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="px-5 py-8 text-center text-slate-500 text-sm">
+                  Không tìm thấy người dùng nào.
+                </td>
+              </tr>
+            ) : (
+              filteredUsers.map((u) => (
+                <tr key={u.id} className="hover:bg-slate-50 transition">
+                  <td className="px-5 py-4 font-medium text-slate-800">
                   {u.fullName}
                 </td>
                 <td className="px-5 py-4 text-slate-500 text-sm">
@@ -205,7 +257,7 @@ export default function Users() {
                   </button>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>

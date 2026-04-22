@@ -11,7 +11,7 @@ public class Patient
     public int UserId { get; set; }
 
     [Column("dob")]
-    public DateOnly? Dob { get; set; }
+public DateTime? DateOfBirth { get; set; }
 
     [Column("gender")]
     public string? Gender { get; set; }

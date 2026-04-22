@@ -49,8 +49,15 @@ public class AuthController : ControllerBase
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
  
-        // Tạo record Patient
-        _context.Patients.Add(new Patient { UserId = user.Id });
+        
+        _context.Patients.Add(new Patient
+{
+    UserId      = user.Id,
+    DateOfBirth = req.DateOfBirth,
+    Gender      = req.Gender,
+    Phone       = req.Phone,
+    Address     = req.Address,
+});
         await _context.SaveChangesAsync();
  
         return Ok(new { message = "Đăng ký thành công", userId = user.Id });

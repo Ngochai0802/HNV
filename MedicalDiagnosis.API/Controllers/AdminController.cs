@@ -362,33 +362,46 @@ public class AdminController : ControllerBase
         if (await _context.Users.AnyAsync(u => u.Email == req.Email))
             return BadRequest(new { message = "Email đã được sử dụng" });
 
-        var user = new User
+        if (!string.IsNullOrEmpty(req.LicenseNumber) && await _context.Doctors.AnyAsync(d => d.LicenseNumber == req.LicenseNumber))
+            return BadRequest(new { message = "Số giấy phép (License Number) đã tồn tại" });
+
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
         {
-            Username     = req.Username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-            Email        = req.Email,
-            FullName     = req.FullName,
-            RoleId       = 2,
-            IsActive     = true,
-            IsDeleted    = false,
-            CreatedAt    = DateTime.Now,
-            UpdatedAt    = DateTime.Now
-        };
+            var user = new User
+            {
+                Username     = req.Username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+                Email        = req.Email,
+                FullName     = req.FullName,
+                RoleId       = 2,
+                IsActive     = true,
+                IsDeleted    = false,
+                CreatedAt    = DateTime.Now,
+                UpdatedAt    = DateTime.Now
+            };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
 
-        _context.Doctors.Add(new Doctor
+            _context.Doctors.Add(new Doctor
+            {
+                UserId            = user.Id,
+                Specialization    = req.Specialization,
+                LicenseNumber     = req.LicenseNumber,
+                YearsOfExperience = req.YearsOfExperience
+            });
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Ok(new { message = "Tạo bác sĩ thành công", userId = user.Id });
+        }
+        catch (Exception ex)
         {
-            UserId            = user.Id,
-            Specialization    = req.Specialization,
-            LicenseNumber     = req.LicenseNumber,
-            YearsOfExperience = req.YearsOfExperience
-        });
-
-        await _context.SaveChangesAsync();
-
-        return Ok(new { message = "Tạo bác sĩ thành công", userId = user.Id });
+            await transaction.RollbackAsync();
+            return StatusCode(500, new { message = "Lỗi hệ thống khi tạo bác sĩ: " + ex.Message });
+        }
     }
 }
 

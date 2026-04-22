@@ -8,3 +8,7 @@ export const getPatientDoctors = () => api.get("/patient/doctors");
 
 // FIX BUG 2 (QUAN TRỌNG)
 export const getMyDoctor = () => api.get("/patient/my-doctor");
+
+// Profile
+export const getPatientProfile = () => api.get("/patient/profile");
+export const updatePatientProfile = (data) => api.put("/patient/profile", data);

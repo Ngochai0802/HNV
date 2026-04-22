@@ -9,3 +9,8 @@ export const getSuggestions = (imageId) =>
 export const useSuggestion = (id, isUsed) =>
   api.patch(`/doctor/suggestions/${id}/use`, { isUsed });
 export const getDoctorAppointments = () => api.get("/appointments");
+
+// Profile
+export const getDoctorProfile = () => api.get("/doctor/profile");
+export const updateDoctorProfile = (data) => api.put("/doctor/profile", data);
+

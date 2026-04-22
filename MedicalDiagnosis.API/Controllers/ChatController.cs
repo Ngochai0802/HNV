@@ -157,6 +157,7 @@ public class ChatController : ControllerBase
                 m.IsAiGenerated,
                 m.IsRead,
                 m.CreatedAt,
+                m.ImageId,
                 SenderName = m.SenderId == null ? "AI" : m.Sender!.FullName
             })
             .ToListAsync();

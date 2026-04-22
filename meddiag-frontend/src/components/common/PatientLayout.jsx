@@ -12,12 +12,15 @@ import {
   Lock,
   HeartPulse,
 } from "lucide-react";
+import { useState } from "react";
 import useAuthStore from "../../store/useAuthStore";
+import ProfileModal from "./ProfileModal";
 
 export default function PatientLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -189,9 +192,13 @@ export default function PatientLayout() {
 
           {user && (
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs border border-blue-200">
+              <button
+                onClick={() => setProfileOpen(true)}
+                title="Xem thông tin cá nhân"
+                className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm border-2 border-blue-200 shadow-md hover:scale-110 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200 cursor-pointer"
+              >
                 {user.fullName?.charAt(0).toUpperCase()}
-              </div>
+              </button>
             </div>
           )}
         </header>
@@ -201,6 +208,13 @@ export default function PatientLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        role="patient"
+      />
     </div>
   );
 }
