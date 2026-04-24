@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../../api/auth';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, HeartPulse } from 'lucide-react';
+import registerBg from '../../assets/register-bg.png';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -35,45 +36,53 @@ export default function Register() {
     }
   };
 
-  const inputClass = "w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition text-sm";
-  const labelClass = "block text-sm font-medium text-gray-700 mb-1";
+  const inputClass = "w-full border-b-2 border-slate-200 py-2 focus:outline-none focus:border-blue-500 transition-colors bg-transparent text-slate-800 font-medium placeholder:text-slate-400 placeholder:font-normal";
+  const labelClass = "block text-xs font-bold text-slate-500 mb-2";
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex w-full font-sans">
 
       {/* TRÁI — ảnh */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#2d1162]">
         <img
-          src="https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&q=80"
-          alt="Hospital"
-          className="w-full h-full object-cover"
+          src={registerBg}
+          alt="AI Medical Healthcare"
+          className="absolute inset-0 w-full h-full object-cover z-0"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-teal-900/70 to-teal-600/40" />
-        <div className="absolute inset-0 flex flex-col justify-center px-12 text-white">
+        {/* Lớp phủ đậm hơn một chút để nổi chữ */}
+        <div className="absolute inset-0 bg-black/30 z-10" /> 
+        
+        <div className="absolute inset-0 z-20 flex flex-col justify-center px-12 text-white">
           <div className="flex items-center gap-3 mb-8">
-           
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-white text-blue-600 rounded-xl shadow-lg">
+              <HeartPulse size={28} />
+            </div>
             <span className="text-2xl font-bold">MedDiag AI</span>
           </div>
-          <h2 className="text-4xl font-bold leading-tight mb-4">
+          
+          {/* Thêm drop-shadow ở đây */}
+          <h2 className="text-4xl font-bold leading-tight mb-4 drop-shadow-lg">
             Chẩn đoán<br />thông minh hơn<br />với AI
           </h2>
-          <p className="text-teal-100 text-lg leading-relaxed">
+          
+          <p className="text-blue-100 text-lg leading-relaxed drop-shadow-md">
             Hệ thống hỗ trợ chẩn đoán X-quang phổi,<br />
             kết nối bệnh nhân và bác sĩ chuyên khoa.
           </p>
+          
           <div className="mt-8 flex flex-col gap-3">
             {[
               'Phân tích X-quang bằng AI trong 30 giây',
               'Kết nối trực tiếp với bác sĩ chuyên khoa',
               'Bảo mật thông tin bệnh nhân tuyệt đối',
             ].map(t => (
-              <div key={t} className="flex items-center gap-2 text-teal-100">
-                <div className="w-5 h-5 rounded-full bg-teal-400 flex items-center justify-center flex-shrink-0">
+              <div key={t} className="flex items-center gap-2 text-blue-100 drop-shadow-sm">
+                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <span className="text-sm">{t}</span>
+                <span className="text-sm font-medium">{t}</span>
               </div>
             ))}
           </div>
@@ -85,15 +94,17 @@ export default function Register() {
         <div className="w-full max-w-md">
 
           {/* Logo mobile */}
-          <div className="flex items-center gap-2 mb-6 lg:hidden">
-            <span className="text-3xl">🏥</span>
+          <div className="flex items-center gap-3 mb-6 lg:hidden">
+            <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-600 rounded-xl text-white shadow-lg">
+              <HeartPulse size={24} />
+            </div>
             <span className="text-xl font-bold text-gray-800">MedDiag AI</span>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">Tạo tài khoản</h1>
-          <p className="text-gray-500 mb-6 text-sm">Điền đầy đủ thông tin để đăng ký</p>
+          <h1 className="text-3xl font-extrabold text-blue-600 tracking-tight mb-1">Tạo tài khoản</h1>
+          <p className="text-slate-500 text-sm font-medium tracking-wide mb-8">Điền đầy đủ thông tin để đăng ký</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
 
             {/* Họ và tên */}
             <div>
@@ -112,7 +123,7 @@ export default function Register() {
             </div>
 
             {/* Username + Ngày sinh */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Tên đăng nhập <span className="text-red-500">*</span></label>
                 <input type="text" placeholder="username"
@@ -124,16 +135,16 @@ export default function Register() {
                 <input type="date"
                   value={form.dateOfBirth} onChange={set('dateOfBirth')} required
                   max={new Date().toISOString().split('T')[0]}
-                  className={inputClass} />
+                  className={inputClass + ' text-slate-500'} />
               </div>
             </div>
 
             {/* Giới tính + SĐT */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Giới tính <span className="text-red-500">*</span></label>
                 <select value={form.gender} onChange={set('gender')} required
-                  className={inputClass}>
+                  className={inputClass + ' text-slate-500 bg-transparent'}>
                   <option value="">-- Chọn --</option>
                   <option value="Male">Nam</option>
                   <option value="Female">Nữ</option>
@@ -166,10 +177,10 @@ export default function Register() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="nhập password"
                   value={form.password} onChange={set('password')} required
-                  className={inputClass + ' pr-11'}
+                  className={inputClass + ' pr-11 tracking-widest'}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
@@ -177,17 +188,17 @@ export default function Register() {
 
             {/* Submit */}
             <button type="submit" disabled={loading}
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-xl font-semibold transition disabled:opacity-60 flex items-center justify-center gap-2 mt-1">
+              className="w-full bg-[#0d8bf0] hover:bg-blue-600 text-white py-3.5 rounded-lg font-bold transition-all shadow-md mt-4 flex items-center justify-center gap-2 disabled:opacity-70">
               {loading
                 ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : 'Tạo tài khoản'}
+                : 'TẠO TÀI KHOẢN'}
             </button>
 
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-5">
+          <p className="text-center text-sm font-medium text-slate-500 mt-8">
             Đã có tài khoản?{' '}
-            <Link to="/login" className="text-teal-600 font-semibold hover:underline">Đăng nhập</Link>
+            <Link to="/login" className="text-blue-600 font-bold hover:underline ml-1">Đăng nhập</Link>
           </p>
 
         </div>
