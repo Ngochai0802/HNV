@@ -1,24 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj": {}
+    "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj": {
+    "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj",
+        "projectUniqueName": "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj",
         "projectName": "MedicalDiagnosis.Core",
-        "projectPath": "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj",
-        "packagesPath": "C:\\Users\\Hai Nguyen\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.Core\\obj\\",
+        "projectPath": "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj",
+        "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.Core\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+          "C:\\Users\\Administrator\\Downloads\\Offline Packages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Hai Nguyen\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\DevExpress 25.2.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -26,6 +26,7 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Users\\Administrator\\Downloads\\System\\Components\\Packages": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -65,7 +66,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.202/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",

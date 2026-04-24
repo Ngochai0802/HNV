@@ -13,4 +13,19 @@ C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\n
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\refint\MedicalDiagnosis.Infrastructure.dll
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.pdb
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\ref\MedicalDiagnosis.Infrastructure.dll
-C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.sourcelink.json
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\bin\Debug\net10.0\MedicalDiagnosis.Infrastructure.deps.json
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\bin\Debug\net10.0\MedicalDiagnosis.Infrastructure.dll
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\bin\Debug\net10.0\MedicalDiagnosis.Infrastructure.pdb
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\bin\Debug\net10.0\MedicalDiagnosis.Core.dll
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\bin\Debug\net10.0\MedicalDiagnosis.Core.pdb
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.AssemblyInfo.cs
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.sourcelink.json
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalD.6567CDC8.Up2Date
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.dll
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\refint\MedicalDiagnosis.Infrastructure.dll
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\MedicalDiagnosis.Infrastructure.pdb
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Infrastructure\obj\Debug\net10.0\ref\MedicalDiagnosis.Infrastructure.dll

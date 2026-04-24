@@ -27,7 +27,8 @@ public class AppDbContext : DbContext
     public DbSet<AiChatResponse> AiChatResponses { get; set; }
     public DbSet<AiSuggestion> AiSuggestions { get; set; }
     public DbSet<Appointment> Appointments { get; set; }
-
+    public DbSet<AiInference> AIInferences { get; set; }
+    public DbSet<AiResult> AIResults { get; set; }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.ConfigureWarnings(w =>

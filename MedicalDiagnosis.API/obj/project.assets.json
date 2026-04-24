@@ -3768,24 +3768,24 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Hai Nguyen\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "C:\\Users\\Administrator\\.nuget\\packages\\": {},
+    "C:\\Users\\Administrator\\Downloads\\Offline Packages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.API\\MedicalDiagnosis.API.csproj",
+      "projectUniqueName": "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.API\\MedicalDiagnosis.API.csproj",
       "projectName": "MedicalDiagnosis.API",
-      "projectPath": "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.API\\MedicalDiagnosis.API.csproj",
-      "packagesPath": "C:\\Users\\Hai Nguyen\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.API\\obj\\",
+      "projectPath": "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.API\\MedicalDiagnosis.API.csproj",
+      "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.API\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        "C:\\Users\\Administrator\\Downloads\\Offline Packages"
       ],
       "configFilePaths": [
-        "C:\\Users\\Hai Nguyen\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\DevExpress 25.2.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
@@ -3793,17 +3793,18 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Users\\Administrator\\Downloads\\System\\Components\\Packages": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
           "projectReferences": {
-            "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj": {
-              "projectPath": "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj"
+            "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj": {
+              "projectPath": "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.Core\\MedicalDiagnosis.Core.csproj"
             },
-            "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.Infrastructure\\MedicalDiagnosis.Infrastructure.csproj": {
-              "projectPath": "C:\\Users\\Hai Nguyen\\MedicalDiagnosis\\MedicalDiagnosis.Infrastructure\\MedicalDiagnosis.Infrastructure.csproj"
+            "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.Infrastructure\\MedicalDiagnosis.Infrastructure.csproj": {
+              "projectPath": "C:\\Users\\Administrator\\Documents\\TTCS\\project\\HNV\\MedicalDiagnosis.Infrastructure\\MedicalDiagnosis.Infrastructure.csproj"
             }
           }
         }
@@ -3878,7 +3879,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.202/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

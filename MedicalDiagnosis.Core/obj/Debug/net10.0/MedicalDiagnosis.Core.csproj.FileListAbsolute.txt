@@ -9,4 +9,15 @@ C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Core\obj\Debug\net10.0\Med
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Core\obj\Debug\net10.0\refint\MedicalDiagnosis.Core.dll
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.pdb
 C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Core\obj\Debug\net10.0\ref\MedicalDiagnosis.Core.dll
-C:\Users\Hai Nguyen\MedicalDiagnosis\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.sourcelink.json
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\bin\Debug\net10.0\MedicalDiagnosis.Core.deps.json
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\bin\Debug\net10.0\MedicalDiagnosis.Core.dll
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\bin\Debug\net10.0\MedicalDiagnosis.Core.pdb
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.AssemblyInfoInputs.cache
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.AssemblyInfo.cs
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.sourcelink.json
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.dll
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\obj\Debug\net10.0\refint\MedicalDiagnosis.Core.dll
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\obj\Debug\net10.0\MedicalDiagnosis.Core.pdb
+C:\Users\Administrator\Documents\TTCS\project\HNV\MedicalDiagnosis.Core\obj\Debug\net10.0\ref\MedicalDiagnosis.Core.dll
