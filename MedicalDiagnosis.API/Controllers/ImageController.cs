@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-
+using Microsoft.Extensions.Configuration;
+using System.Text;
+using System.Text.Json;
 namespace MedicalDiagnosis.API.Controllers;
 
 [ApiController]
@@ -16,12 +18,13 @@ public class ImageController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _env;
     private readonly HttpClient _httpClient;
-
-    public ImageController(AppDbContext context, IWebHostEnvironment env, IHttpClientFactory httpClientFactory)
+    private readonly IConfiguration _configuration;
+    public ImageController(AppDbContext context, IWebHostEnvironment env, IHttpClientFactory httpClientFactory,IConfiguration configuration)
     {
         _context    = context;
         _env        = env;
         _httpClient = httpClientFactory.CreateClient("AI");
+        _configuration = configuration;
     }
 
     // POST /api/images/upload
@@ -114,19 +117,19 @@ public class ImageController : ControllerBase
     }
 
     // GET /api/images/{id}
+    [AllowAnonymous]
     [HttpGet("{id}")]
     [Authorize(Roles = "patient,doctor,admin")]
     public async Task<IActionResult> GetImageDetail(int id)
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-        var role   = User.FindFirst(ClaimTypes.Role)!.Value;
+        var role = User.FindFirst(ClaimTypes.Role)!.Value;
 
         var image = await _context.MedicalImages
             .FirstOrDefaultAsync(m => m.Id == id && !m.IsDeleted);
 
         if (image == null) return NotFound();
 
-        // Patient chỉ xem ảnh của mình
         if (role == "patient" && image.PatientId != userId)
             return Forbid();
 
@@ -139,15 +142,39 @@ public class ImageController : ControllerBase
         AiResult? result = null;
         List<AiBoundingBox> boxes = new();
 
+        // Khởi tạo giá trị mặc định
+        string severity = "safe";
+        string severityText = "Chưa có kết quả";
+        string recommendation = "Đang chờ hệ thống phân tích hình ảnh.";
+
         if (inference != null)
         {
             result = await _context.AiResults
                 .FirstOrDefaultAsync(r => r.InferenceId == inference.Id);
 
             if (result != null)
+            {
                 boxes = await _context.AiBoundingBoxes
                     .Where(b => b.ResultId == result.Id)
                     .ToListAsync();
+
+                // LOGIC PHÂN LOẠI (Chỉ chạy khi có result)
+                severityText = "An toàn";
+                recommendation = "Kết quả sơ bộ cho thấy chưa có dấu hiệu bất thường rõ rệt.";
+
+                if (result.ConfidenceScore > 80 && result.PredictionLabel != "Bình thường")
+                {
+                    severity = "danger";
+                    severityText = "Nguy hiểm";
+                    recommendation = "Dấu hiệu bệnh lý rõ rệt. Bạn cần nhập viện hoặc liên hệ cấp cứu ngay.";
+                }
+                else if (result.ConfidenceScore > 40 && result.PredictionLabel != "Bình thường")
+                {
+                    severity = "warning";
+                    severityText = "Cần khám ngay";
+                    recommendation = "Phát hiện dấu hiệu nghi vấn. Hãy đặt lịch hẹn với bác sĩ chuyên khoa sớm nhất.";
+                }
+            }
         }
 
         return Ok(new
@@ -168,7 +195,12 @@ public class ImageController : ControllerBase
             {
                 result.PredictionLabel,
                 result.ConfidenceScore,
-                result.ProcessedImageUrl
+                result.ProcessedImageUrl,
+                result.HeatmapBase64,
+                // PHẢI TRẢ THÊM 3 TRƯỜNG NÀY VỀ FRONTEND
+                Severity = severity,
+                SeverityText = severityText,
+                Recommendation = recommendation
             },
             BoundingBoxes = boxes.Select(b => new { b.X, b.Y, b.Width, b.Height })
         });
@@ -177,13 +209,41 @@ public class ImageController : ControllerBase
     // Gọi AI service bất đồng bộ
     private async Task CallAiServiceAsync(int imageId, int inferenceId)
     {
-        try
+        try 
         {
-            await _httpClient.PostAsJsonAsync("/ai/analyze", new { imageId, inferenceId });
+            // 1. Lấy thông tin ảnh từ DB (Optional: chỉ lấy nếu cần log)
+            // var image = await _context.MedicalImages.FindAsync(imageId);
+            
+            // 2. Gửi request sang AI Service
+            // LƯU Ý: Tên ImageId và InferenceId phải khớp chính xác với AnalyzeRequest bên Python
+            var payload = new {
+                imageId = imageId,      // Đổi từ image_id -> imageId
+                inferenceId = inferenceId // Đổi từ inference_id -> inferenceId
+            };
+
+            var content = new StringContent(
+                JsonSerializer.Serialize(payload), 
+                Encoding.UTF8, 
+                "application/json" // Đây là tham số thứ 3
+            );
+
+            // 3. Lấy BaseUrl từ appsettings.json và gọi đúng endpoint /ai/analyze
+            var baseUrl = _configuration["AIService:BaseUrl"] ?? "http://localhost:8000";
+            var response = await _httpClient.PostAsync($"{baseUrl}/ai/analyze", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"--- Đã kích hoạt AI thành công cho Image: {imageId} ---");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"--- AI Service trả về lỗi ({response.StatusCode}): {error} ---");
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            // AI service chưa chạy → bỏ qua, không crash app
+            Console.WriteLine($"--- Lỗi kết nối AI Service: {ex.Message} ---");
         }
     }
 }

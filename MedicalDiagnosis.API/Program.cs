@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using MedicalDiagnosis.API.Hubs;
+using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Database
@@ -42,9 +43,15 @@ builder.Services.AddCors(options =>
 
 // 4. Services
 builder.Services.AddScoped<JwtService>();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Dòng này cực kỳ quan trọng để xử lý lỗi 500 khi dùng .Include
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
 builder.Services.AddSignalR();
-builder.Services.AddHttpClient("AI", c =>
+builder.Services.AddHttpClient<IAIService, AiService>(c =>
 {
     c.BaseAddress = new Uri("http://localhost:8000");
 });

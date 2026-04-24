@@ -45,8 +45,8 @@ public class AuthController : ControllerBase
             IsDeleted    = false,
             CreatedAt    = DateTime.Now
         };
- 
-        _context.Users.Add(user);
+        try{
+            _context.Users.Add(user);
         await _context.SaveChangesAsync();
  
         // Tạo record Patient
@@ -54,6 +54,12 @@ public class AuthController : ControllerBase
         await _context.SaveChangesAsync();
  
         return Ok(new { message = "Đăng ký thành công", userId = user.Id });
+        }catch(Exception ex){
+            var innerError = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+    Console.WriteLine("LỖI THẬT ĐÂY: " + innerError); // Xem ở màn hình Console của Visual Studio
+    return StatusCode(500, new { message = "Lỗi DB ngầm", details = innerError });
+        }
+        
     }
  
     // POST /api/auth/login
