@@ -54,6 +54,7 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetAppointments()
     {
         var appointments = await _context.Appointments
+            .AsNoTracking()
             .Include(a => a.Patient).ThenInclude(p => p!.User)
             .Include(a => a.Doctor).ThenInclude(d => d!.User)
             .OrderByDescending(a => a.CreatedAt)
@@ -113,8 +114,15 @@ public class AdminController : ControllerBase
     [HttpGet("images")]
     public async Task<IActionResult> GetImages([FromQuery] string? status)
     {
+        // Lấy trước danh sách ảnh đã được assign để tránh N+1 query
+        var assignedImageIds = await _context.ImageAssignments
+            .AsNoTracking()
+            .Select(a => a.ImageId)
+            .Distinct()
+            .ToListAsync();
+
         var query = _context.MedicalImages
-            .Include(m => m.Patient).ThenInclude(p => p!.User)
+            .AsNoTracking()
             .Where(m => !m.IsDeleted);
 
         if (!string.IsNullOrEmpty(status))
@@ -129,19 +137,32 @@ public class AdminController : ControllerBase
                 m.ImageUrl,
                 m.Status,
                 m.UploadDate,
-                PatientName = m.Patient!.User!.FullName,
-                IsAssigned  = _context.ImageAssignments.Any(a => a.ImageId == m.Id)
+                PatientName = m.Patient!.User!.FullName
             })
             .ToListAsync();
 
-        return Ok(images);
+        // Ghép IsAssigned trong memory — không cần query DB
+        var result = images.Select(m => new
+        {
+            m.Id,
+            m.FileName,
+            m.ImageUrl,
+            m.Status,
+            m.UploadDate,
+            m.PatientName,
+            IsAssigned = assignedImageIds.Contains(m.Id)
+        }).ToList();
+
+        return Ok(result);
     }
+
 
     // GET /api/admin/doctors
     [HttpGet("doctors")]
     public async Task<IActionResult> GetDoctors()
     {
         var doctors = await _context.Doctors
+            .AsNoTracking()
             .Include(d => d.User)
             .Where(d => d.User!.IsActive && !d.User.IsDeleted)
             .Select(d => new

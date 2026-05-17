@@ -26,6 +26,7 @@ public class DoctorController : ControllerBase
         var doctorId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         var query = _context.ImageAssignments
+            .AsNoTracking()
             .Include(a => a.Image).ThenInclude(i => i!.Patient).ThenInclude(p => p!.User)
             .Where(a => a.DoctorId == doctorId);
 

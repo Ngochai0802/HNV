@@ -25,48 +25,63 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req)
     {
-        // Kiểm tra trùng username / email
-        if (await _context.Users.AnyAsync(u => u.Username == req.Username))
+        // Kiểm tra trùng username / email (AsNoTracking để không giữ tracking lock)
+        // DbContext KHÔNG thread-safe → phải chạy tuần tự, không dùng Task.WhenAll
+        var usernameExists = await _context.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Username == req.Username);
+        if (usernameExists)
             return BadRequest(new { message = "Username đã tồn tại" });
- 
-        if (await _context.Users.AnyAsync(u => u.Email == req.Email))
+
+        var emailExists = await _context.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Email == req.Email);
+        if (emailExists)
             return BadRequest(new { message = "Email đã được sử dụng" });
- 
-        var patientRole = await _context.Roles.FirstAsync(r => r.RoleName == "patient");
- 
+
+        var patientRole = await _context.Roles
+            .AsNoTracking()
+            .FirstAsync(r => r.RoleName == "patient");
+
+        // Hash password sau khi validate xong (CPU-bound ~200-300ms)
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(req.Password);
+
         var user = new User
         {
             Username     = req.Username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+            PasswordHash = passwordHash,
             Email        = req.Email,
             FullName     = req.FullName,
             RoleId       = patientRole.Id,
             IsActive     = true,
             IsDeleted    = false,
-            CreatedAt    = DateTime.Now
+            CreatedAt    = DateTime.UtcNow,
+            UpdatedAt    = DateTime.UtcNow
         };
-        try{
+
+        try
+        {
             _context.Users.Add(user);
-        await _context.SaveChangesAsync();
- 
-        
-        _context.Patients.Add(new Patient
-{
-    UserId      = user.Id,
-    DateOfBirth = req.DateOfBirth,
-    Gender      = req.Gender,
-    Phone       = req.Phone,
-    Address     = req.Address,
-});
-        await _context.SaveChangesAsync();
- 
-        return Ok(new { message = "Đăng ký thành công", userId = user.Id });
-        }catch(Exception ex){
-            var innerError = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-    Console.WriteLine("LỖI THẬT ĐÂY: " + innerError); // Xem ở màn hình Console của Visual Studio
-    return StatusCode(500, new { message = "Lỗi DB ngầm", details = innerError });
+            await _context.SaveChangesAsync();
+
+            _context.Patients.Add(new Patient
+            {
+                UserId      = user.Id,
+                DateOfBirth = req.DateOfBirth,
+                Gender      = req.Gender,
+                Phone       = req.Phone,
+                Address     = req.Address,
+            });
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đăng ký thành công", userId = user.Id });
         }
-        
+        catch (Exception ex)
+        {
+            var innerError = ex.InnerException?.Message ?? ex.Message;
+            Console.WriteLine("LỖI ĐĂNG KÝ: " + innerError);
+            return StatusCode(500, new { message = "Lỗi server", details = innerError });
+        }
     }
  
     // POST /api/auth/login

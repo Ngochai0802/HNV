@@ -19,8 +19,8 @@ public class Diagnosis
     [Column("diagnosis_text")]
     public string? DiagnosisText { get; set; }
 
-    // Ánh xạ 'FinalResult' trong code vào cột 'result' trong DB
-    [Column("result")]
+    // Ánh xạ 'FinalResult' trong code vào cột 'final_result' trong DB
+    [Column("final_result")]
     public string? FinalResult { get; set; }
 
     [Column("severity_level")]
@@ -38,7 +38,7 @@ public class Diagnosis
 
     // Ánh xạ 'Confidence' vào cột 'confidence_score'
     [Column("confidence_score")]
-    public float Confidence { get; set; }
+    public double Confidence { get; set; }
 
     [Column("HasAbnormality")]
     public bool HasAbnormality { get; set; }

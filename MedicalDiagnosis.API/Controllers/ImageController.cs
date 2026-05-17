@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 
 namespace MedicalDiagnosis.API.Controllers;
 
@@ -18,13 +20,17 @@ public class ImageController : ControllerBase
     private readonly IWebHostEnvironment _env;
     private readonly HttpClient _httpClient;
     private readonly AutoAssignService _autoAssign;
+    private readonly IConfiguration _configuration;
 
-    public ImageController(AppDbContext context, IWebHostEnvironment env, IHttpClientFactory httpClientFactory, AutoAssignService autoAssign)
+    public ImageController(AppDbContext context, IWebHostEnvironment env,
+        IHttpClientFactory httpClientFactory, AutoAssignService autoAssign,
+        IConfiguration configuration)
     {
-        _context    = context;
-        _env        = env;
-        _httpClient = httpClientFactory.CreateClient("AI");
-        _autoAssign = autoAssign;
+        _context       = context;
+        _env           = env;
+        _httpClient    = httpClientFactory.CreateClient("AI");
+        _autoAssign    = autoAssign;
+        _configuration = configuration;
     }
 
     // POST /api/images/upload
@@ -41,24 +47,21 @@ public class ImageController : ControllerBase
 
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-        // Lưu file vào wwwroot/uploads/{userId}/
-        var webRoot     = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var webRoot      = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         var uploadFolder = Path.Combine(webRoot, "uploads", userId.ToString());
         Directory.CreateDirectory(uploadFolder);
 
-        var fileName  = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-        var filePath  = Path.Combine(uploadFolder, fileName);
-        var imageUrl  = $"/uploads/{userId}/{fileName}";
+        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+        var filePath = Path.Combine(uploadFolder, fileName);
+        var imageUrl = $"/uploads/{userId}/{fileName}";
 
         using (var stream = new FileStream(filePath, FileMode.Create))
             await file.CopyToAsync(stream);
 
-        // Lấy model AI đang active
         var aiModel = await _context.AiModels.FirstOrDefaultAsync(m => m.IsActive);
         if (aiModel == null)
             return StatusCode(500, new { message = "Không tìm thấy AI model" });
 
-        // Tạo MedicalImage
         var image = new MedicalImage
         {
             PatientId  = userId,
@@ -72,7 +75,6 @@ public class ImageController : ControllerBase
         _context.MedicalImages.Add(image);
         await _context.SaveChangesAsync();
 
-        // Tạo AiInference
         var inference = new AiInference
         {
             ImageId   = image.Id,
@@ -83,14 +85,12 @@ public class ImageController : ControllerBase
         _context.AiInferences.Add(inference);
         await _context.SaveChangesAsync();
 
-        // Gọi AI service (background — không chờ)
+        // Gọi AI service bất đồng bộ
         _ = CallAiServiceAsync(image.Id, inference.Id);
 
-        // ✅ Tự động phân công nếu chế độ đang BẬT
+        // Tự động phân công nếu chế độ đang BẬT
         if (_autoAssign.IsEnabled)
-        {
             await AutoAssignImageAsync(image);
-        }
 
         return Ok(new { message = "Upload thành công", imageId = image.Id });
     }
@@ -135,11 +135,11 @@ public class ImageController : ControllerBase
 
         if (image == null) return NotFound();
 
-        // Patient chỉ xem ảnh của mình
         if (role == "patient" && image.PatientId != userId)
             return Forbid();
 
         var inference = await _context.AiInferences
+            .AsNoTracking()
             .Include(i => i.Model)
             .Where(i => i.ImageId == id)
             .OrderByDescending(i => i.CreatedAt)
@@ -148,16 +148,48 @@ public class ImageController : ControllerBase
         AiResult? result = null;
         List<AiBoundingBox> boxes = new();
 
+        // Khởi tạo giá trị mặc định severity
+        string severity        = "safe";
+        string severityText    = "Chưa có kết quả";
+        string recommendation  = "Đang chờ hệ thống phân tích hình ảnh.";
+
         if (inference != null)
         {
             result = await _context.AiResults
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.InferenceId == inference.Id);
 
             if (result != null)
+            {
                 boxes = await _context.AiBoundingBoxes
                     .Where(b => b.ResultId == result.Id)
                     .ToListAsync();
+
+                severityText   = "An toàn";
+                recommendation = "Kết quả sơ bộ cho thấy chưa có dấu hiệu bất thường rõ rệt.";
+
+                if (result.ConfidenceScore > 0.8 && result.PredictionLabel != "Bình thường")
+                {
+                    severity       = "danger";
+                    severityText   = "Nguy hiểm";
+                    recommendation = "Dấu hiệu bệnh lý rõ rệt. Bạn cần nhập viện hoặc liên hệ cấp cứu ngay.";
+                }
+                else if (result.ConfidenceScore > 0.4 && result.PredictionLabel != "Bình thường")
+                {
+                    severity       = "warning";
+                    severityText   = "Cần khám ngay";
+                    recommendation = "Phát hiện dấu hiệu nghi vấn. Hãy đặt lịch hẹn với bác sĩ chuyên khoa sớm nhất.";
+                }
+            }
         }
+
+        var diagnosis = await _context.Diagnoses
+            .Include(d => d.Doctor).ThenInclude(d => d!.User)
+            .FirstOrDefaultAsync(d => d.ImageId == id);
+
+        var suggestions = await _context.AiSuggestions
+            .Where(s => s.ImageId == id)
+            .ToListAsync();
 
         return Ok(new
         {
@@ -177,9 +209,23 @@ public class ImageController : ControllerBase
             {
                 result.PredictionLabel,
                 result.ConfidenceScore,
-                result.ProcessedImageUrl
+                result.ProcessedImageUrl,
+                result.HeatmapBase64,
+                Severity       = severity,
+                SeverityText   = severityText,
+                Recommendation = recommendation
             },
-            BoundingBoxes = boxes.Select(b => new { b.X, b.Y, b.Width, b.Height })
+            BoundingBoxes = boxes.Select(b => new { b.X, b.Y, b.Width, b.Height }),
+            Diagnosis = diagnosis == null ? null : new
+            {
+                diagnosis.Id,
+                diagnosis.DiagnosisText,
+                diagnosis.FinalResult,
+                diagnosis.SeverityLevel,
+                diagnosis.CreatedAt,
+                DoctorName = diagnosis.Doctor?.User?.FullName
+            },
+            Suggestions = suggestions.Select(s => new { s.Id, s.SuggestedText, s.IsUsedByDoctor })
         });
     }
 
@@ -188,11 +234,27 @@ public class ImageController : ControllerBase
     {
         try
         {
-            await _httpClient.PostAsJsonAsync("/ai/analyze", new { imageId, inferenceId });
+            var payload = new { imageId, inferenceId };
+            var content = new StringContent(
+                JsonSerializer.Serialize(payload),
+                Encoding.UTF8,
+                "application/json"
+            );
+
+            var baseUrl  = _configuration["AIService:BaseUrl"] ?? "http://localhost:8000";
+            var response = await _httpClient.PostAsync($"{baseUrl}/ai/analyze", content);
+
+            if (response.IsSuccessStatusCode)
+                Console.WriteLine($"--- Đã kích hoạt AI thành công cho Image: {imageId} ---");
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"--- AI Service lỗi ({response.StatusCode}): {error} ---");
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            // AI service chưa chạy → bỏ qua, không crash app
+            Console.WriteLine($"--- Lỗi kết nối AI Service: {ex.Message} ---");
         }
     }
 
@@ -232,7 +294,7 @@ public class ImageController : ControllerBase
             {
                 ImageId    = image.Id,
                 DoctorId   = bestDoctor.UserId,
-                AssignedBy = image.PatientId, // auto-assign bởi hệ thống
+                AssignedBy = image.PatientId,
                 AssignedAt = DateTime.Now,
                 Status     = "pending"
             });

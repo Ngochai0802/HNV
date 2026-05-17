@@ -8,15 +8,28 @@ import {
   LogOut,
   HeartPulse,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useAuthStore from "../../store/useAuthStore";
 import ProfileModal from "./ProfileModal";
+import { getNotifications } from "../../api/notification";
 
 export default function DoctorLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch số thông báo chưa đọc
+  useEffect(() => {
+    if (!user) return;
+    getNotifications()
+      .then((res) => {
+        const count = (res.data || []).filter((n) => !n.isRead).length;
+        setUnreadCount(count);
+      })
+      .catch(() => {});
+  }, [user, location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -128,7 +141,22 @@ export default function DoctorLayout() {
               Chào, BS. {user?.fullName}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* ┄ Bell icon ┄ */}
+            <Link
+              to="/doctor/notifications"
+              className="relative w-9 h-9 rounded-full bg-slate-100 hover:bg-teal-50 flex items-center justify-center text-slate-500 hover:text-teal-600 transition-all duration-200"
+              title="Thông báo"
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-sm shadow-red-500/40 animate-pulse">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
+
+            {/* ┄ Avatar ┄ */}
             <button
               onClick={() => setProfileOpen(true)}
               title="Xem thông tin cá nhân"

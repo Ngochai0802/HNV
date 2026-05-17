@@ -59,28 +59,60 @@ public class ChatController : ControllerBase
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-        var conversations = await _context.ConversationParticipants
+        // Bước 1: Lấy danh sách conversation mà user tham gia (query đơn giản)
+        var myConversationIds = await _context.ConversationParticipants
+            .AsNoTracking()
             .Where(p => p.UserId == userId)
-            .Include(p => p.Conversation)
-            .Select(p => new
+            .Select(p => new { p.ConversationId, p.Conversation!.CreatedAt })
+            .ToListAsync();
+
+        if (!myConversationIds.Any())
+            return Ok(new List<object>());
+
+        var convIds = myConversationIds.Select(c => c.ConversationId).ToList();
+
+        // Bước 2: Lấy tất cả participants của các conversations đó (1 query)
+        var allParticipants = await _context.ConversationParticipants
+            .AsNoTracking()
+            .Where(cp => convIds.Contains(cp.ConversationId))
+            .Select(cp => new
             {
-                p.Conversation!.Id,
-                p.Conversation.CreatedAt,
-                Participants = _context.ConversationParticipants
-                    .Where(cp => cp.ConversationId == p.ConversationId)
-                    .Include(cp => cp.User)
-                    .Select(cp => new { cp.UserId, cp.User!.FullName, cp.Role })
-                    .ToList(),
-                LastMessage = _context.Messages
-                    .Where(m => m.ConversationId == p.ConversationId)
-                    .OrderByDescending(m => m.CreatedAt)
-                    .Select(m => new { m.Content, m.CreatedAt, m.SenderType })
-                    .FirstOrDefault()
+                cp.ConversationId,
+                cp.UserId,
+                FullName = cp.User!.FullName,
+                cp.Role
             })
             .ToListAsync();
 
-        return Ok(conversations);
+        // Bước 3: Lấy last message của mỗi conversation (1 query)
+        var lastMessages = await _context.Messages
+            .AsNoTracking()
+            .Where(m => convIds.Contains(m.ConversationId))
+            .GroupBy(m => m.ConversationId)
+            .Select(g => new
+            {
+                ConversationId = g.Key,
+                Content    = g.OrderByDescending(m => m.CreatedAt).First().Content,
+                CreatedAt  = g.OrderByDescending(m => m.CreatedAt).First().CreatedAt,
+                SenderType = g.OrderByDescending(m => m.CreatedAt).First().SenderType
+            })
+            .ToListAsync();
+
+        // Bước 4: Ghép kết quả trong memory (cực nhanh)
+        var result = myConversationIds.Select(c => new
+        {
+            Id          = c.ConversationId,
+            c.CreatedAt,
+            Participants = allParticipants
+                .Where(p => p.ConversationId == c.ConversationId)
+                .Select(p => new { p.UserId, p.FullName, p.Role })
+                .ToList(),
+            LastMessage = lastMessages.FirstOrDefault(m => m.ConversationId == c.ConversationId)
+        }).ToList();
+
+        return Ok(result);
     }
+
 
     // POST /api/chat/messages
     [HttpPost("messages")]

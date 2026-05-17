@@ -27,12 +27,12 @@ public class AppDbContext : DbContext
     public DbSet<AiChatResponse> AiChatResponses { get; set; }
     public DbSet<AiSuggestion> AiSuggestions { get; set; }
     public DbSet<Appointment> Appointments { get; set; }
-    public DbSet<AiInference> AIInferences { get; set; }
-    public DbSet<AiResult> AIResults { get; set; }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.ConfigureWarnings(w =>
-            w.Ignore(RelationalEventId.PendingModelChangesWarning));
+        optionsBuilder
+            .ConfigureWarnings(w =>
+                w.Ignore(RelationalEventId.PendingModelChangesWarning))
+            .UseSqlServer(o => o.CommandTimeout(120)); // Tăng timeout lên 120 giây
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -14,7 +14,7 @@ public class Doctor
     public string? Specialization { get; set; }
 
     [Column("license_number")]
-    public string? LicenseNumber { get; set; }
+    public string? LicenseNumber { get; set; }  
 
     [Column("years_of_experience")]
     public int YearsOfExperience { get; set; } = 0;

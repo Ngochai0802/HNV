@@ -79,7 +79,7 @@ public class PatientController : ControllerBase
                 diagnosis.SeverityLevel,
                 diagnosis.CreatedAt,
                 DoctorId = diagnosis.DoctorId,
-                DoctorName = diagnosis.Doctor!.User!.FullName
+                DoctorName = diagnosis.Doctor?.User?.FullName ?? "Bác sĩ"
             },
             AiResult = aiResult
         });

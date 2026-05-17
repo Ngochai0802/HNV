@@ -1,0 +1,17 @@
+# Bỏ qua thư mục chứa ảnh upload
+MedicalDiagnosis.API/wwwroot/uploads/
+
+# Bỏ qua môi trường ảo Python
+AI_Service/venv/
+AI_Service/__pycache__/
+
+# Bỏ qua các file tài liệu và file txt nháp
+docx_*.txt
+*.docx
+ImageController_AI.txt
+
+# Bỏ qua các thư mục build thừa (nếu có)
+node_modules/
+.vs/
+bin/
+obj/

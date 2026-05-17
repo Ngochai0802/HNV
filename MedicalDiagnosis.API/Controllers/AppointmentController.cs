@@ -83,6 +83,7 @@ public class AppointmentController : ControllerBase
         var role   = User.FindFirst(ClaimTypes.Role)!.Value;
 
         var query = _context.Appointments
+            .AsNoTracking()
             .Include(a => a.Patient).ThenInclude(p => p!.User)
             .Include(a => a.Doctor).ThenInclude(d => d!.User)
             .AsQueryable();

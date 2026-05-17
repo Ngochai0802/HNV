@@ -17,22 +17,49 @@ export default function ImageDetail() {
   const imgRef = useRef(null);
 
   useEffect(() => {
-    Promise.all([
-      getImageDetail(id),
-      getDiagnosis(id).catch(() => ({ data: null })),
-    ])
-      .then(([detailRes, diagRes]) => {
-        setDetail(detailRes.data);
-        setDiagnosis(diagRes.data?.diagnosis ?? null);
-      })
-      .finally(() => setLoading(false));
+    let interval;
+
+    const fetchData = () => {
+      Promise.all([
+        getImageDetail(id),
+        getDiagnosis(id).catch(() => ({ data: null })),
+      ])
+        .then(([detailRes, diagRes]) => {
+          setDetail(detailRes.data);
+          const diagData = diagRes.data?.diagnosis || detailRes.data?.diagnosis;
+          setDiagnosis(diagData || null);
+
+          // Nếu AI đang xử lý, thiết lập polling 3s một lần
+          if (detailRes.data?.inference?.status === "pending") {
+            if (!interval) {
+              interval = setInterval(fetchData, 3000);
+            }
+          } else {
+            if (interval) clearInterval(interval);
+          }
+        })
+        .finally(() => setLoading(false));
+    };
+
+    fetchData();
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [id]);
 
   // Vẽ bounding box lên canvas
   const drawBoxes = () => {
     const canvas = canvasRef.current;
     const img = imgRef.current;
-    if (!canvas || !img || !detail?.boundingBoxes?.length) return;
+    if (!canvas || !img || !detail?.boundingBoxes?.length) {
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      return;
+    }
+    
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
     const ctx = canvas.getContext("2d");
@@ -46,6 +73,10 @@ export default function ImageDetail() {
       ctx.fillText("Bất thường", box.x + 4, box.y - 6);
     });
   };
+
+  useEffect(() => {
+    if (detail) drawBoxes();
+  }, [detail]);
 
   // =============================================
   // Xử lý nút "Nhận tư vấn Bác sĩ về ca này"
