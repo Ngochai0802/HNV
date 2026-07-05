@@ -22,6 +22,386 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiBoundingBox", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<double>("Height")
+                        .HasColumnType("float")
+                        .HasColumnName("height");
+
+                    b.Property<int>("ResultId")
+                        .HasColumnType("int")
+                        .HasColumnName("result_id");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("float")
+                        .HasColumnName("width");
+
+                    b.Property<double>("X")
+                        .HasColumnType("float")
+                        .HasColumnName("x");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("float")
+                        .HasColumnName("y");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResultId");
+
+                    b.ToTable("AI_Bounding_Boxes");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiChatResponse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("ConfidenceScore")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("confidence_score");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("ImageId")
+                        .HasColumnType("int")
+                        .HasColumnName("image_id");
+
+                    b.Property<int?>("InferenceId")
+                        .HasColumnType("int")
+                        .HasColumnName("inference_id");
+
+                    b.Property<string>("MessageContent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("message_content");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImageId");
+
+                    b.ToTable("AI_Chat_Responses");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiInference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("ImageId")
+                        .HasColumnType("int")
+                        .HasColumnName("image_id");
+
+                    b.Property<double?>("InferenceTime")
+                        .HasColumnType("float")
+                        .HasColumnName("inference_time");
+
+                    b.Property<int>("ModelId")
+                        .HasColumnType("int")
+                        .HasColumnName("model_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImageId");
+
+                    b.HasIndex("ModelId");
+
+                    b.ToTable("AI_Inferences");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("Accuracy")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("accuracy");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("ModelName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("model_name");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AI_Models");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiResult", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<double?>("ConfidenceScore")
+                        .HasColumnType("float")
+                        .HasColumnName("confidence_score");
+
+                    b.Property<string>("HeatmapBase64")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("heatmap_base64");
+
+                    b.Property<int>("InferenceId")
+                        .HasColumnType("int")
+                        .HasColumnName("inference_id");
+
+                    b.Property<string>("PredictionLabel")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("prediction_label");
+
+                    b.Property<string>("ProcessedImageUrl")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("processed_image_url");
+
+                    b.Property<string>("SeverityLevel")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("severity_level");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InferenceId");
+
+                    b.ToTable("AI_Results");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiSuggestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("ImageId")
+                        .HasColumnType("int")
+                        .HasColumnName("image_id");
+
+                    b.Property<bool>("IsUsedByDoctor")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_used_by_doctor");
+
+                    b.Property<string>("SuggestedText")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("suggested_text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImageId");
+
+                    b.ToTable("AI_Suggestions");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Appointment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AppointmentTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("appointment_time");
+
+                    b.Property<string>("CancelReason")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("cancel_reason");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int")
+                        .HasColumnName("doctor_id");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("note");
+
+                    b.Property<int>("PatientId")
+                        .HasColumnType("int")
+                        .HasColumnName("patient_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("Appointments");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Conversation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Conversations");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.ConversationParticipant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_archived");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("role");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Conversation_Participants");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Diagnosis", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AIFindings")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("AIFindings");
+
+                    b.Property<double?>("Confidence")
+                        .HasColumnType("float")
+                        .HasColumnName("confidence_score");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DiagnosisText")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("diagnosis_text");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int")
+                        .HasColumnName("doctor_id");
+
+                    b.Property<string>("FinalResult")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("final_result");
+
+                    b.Property<bool?>("HasAbnormality")
+                        .HasColumnType("bit")
+                        .HasColumnName("HasAbnormality");
+
+                    b.Property<string>("HeatmapPath")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("heatmap_path");
+
+                    b.Property<int>("ImageId")
+                        .HasColumnType("int")
+                        .HasColumnName("image_id");
+
+                    b.Property<string>("SeverityLevel")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("severity_level");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("ImageId");
+
+                    b.ToTable("Diagnoses");
+                });
+
             modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Doctor", b =>
                 {
                     b.Property<int>("UserId")
@@ -36,7 +416,7 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("specialization");
 
-                    b.Property<int>("YearsOfExperience")
+                    b.Property<int?>("YearsOfExperience")
                         .HasColumnType("int")
                         .HasColumnName("years_of_experience");
 
@@ -65,6 +445,195 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.ImageAssignment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("assigned_at");
+
+                    b.Property<int>("AssignedBy")
+                        .HasColumnType("int")
+                        .HasColumnName("assigned_by");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int")
+                        .HasColumnName("doctor_id");
+
+                    b.Property<int>("ImageId")
+                        .HasColumnType("int")
+                        .HasColumnName("image_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedBy");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("ImageId");
+
+                    b.ToTable("Image_Assignments");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.MedicalImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("file_name");
+
+                    b.Property<long?>("FileSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("image_url");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<int>("PatientId")
+                        .HasColumnType("int")
+                        .HasColumnName("patient_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UploadDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("upload_date");
+
+                    b.Property<int>("UploadedBy")
+                        .HasColumnType("int")
+                        .HasColumnName("uploaded_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("UploadedBy");
+
+                    b.ToTable("Medical_Images");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Message", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("content");
+
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("ImageId")
+                        .HasColumnType("int")
+                        .HasColumnName("image_id");
+
+                    b.Property<bool>("IsAiGenerated")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_ai_generated");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_read");
+
+                    b.Property<int?>("SenderId")
+                        .HasColumnType("int")
+                        .HasColumnName("sender_id");
+
+                    b.Property<string>("SenderType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("sender_type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("ImageId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_read");
+
+                    b.Property<string>("RelatedUrl")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("related_url");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("title");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Patient", b =>
                 {
                     b.Property<int>("UserId")
@@ -75,8 +644,8 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("address");
 
-                    b.Property<DateOnly?>("Dob")
-                        .HasColumnType("date")
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("datetime2")
                         .HasColumnName("dob");
 
                     b.Property<string>("Gender")
@@ -159,7 +728,8 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
                         .HasColumnName("email");
 
                     b.Property<int>("FailedAttempts")
@@ -168,7 +738,8 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
 
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
                         .HasColumnName("full_name");
 
                     b.Property<bool>("IsActive")
@@ -185,7 +756,8 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
                         .HasColumnName("password_hash");
 
                     b.Property<int>("RoleId")
@@ -198,7 +770,8 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
 
                     b.Property<string>("Username")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("username");
 
                     b.HasKey("Id");
@@ -223,7 +796,7 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
                             FullName = "Quản Trị Viên",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$AAAAAAAAAAAAAAAAAAAAAAO8GmFD3MfLkBMW6E.8eRNPFSFl6YFHS",
+                            PasswordHash = "$2a$11$yA.GlwW2tXY3gsvDy8E5B.JlztRnF8KayaMxEww0Z3Mbg.g0CNGPq",
                             RoleId = 1,
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Username = "admin01"
@@ -237,7 +810,7 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
                             FullName = "BS. Nguyễn Văn An",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$BBBBBBBBBBBBBBBBBBBBBBO3HnGE4NmGlCNb7F9fSGTGHl7ZFHS",
+                            PasswordHash = "$2a$11$qhfVvllmtzWQWRnZzhw6RurDquvovom2YA0cMMBWvOyVS/5jBVoZi",
                             RoleId = 2,
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Username = "bs_nguyen"
@@ -251,7 +824,7 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
                             FullName = "BS. Trần Thị Bình",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$BBBBBBBBBBBBBBBBBBBBBBO3HnGE4NmGlCNb7F9fSGTGHl7ZFHS",
+                            PasswordHash = "$2a$11$qhfVvllmtzWQWRnZzhw6RurDquvovom2YA0cMMBWvOyVS/5jBVoZi",
                             RoleId = 2,
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Username = "bs_tran"
@@ -265,7 +838,7 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
                             FullName = "Hoàng Minh Tuấn",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$CCCCCCCCCCCCCCCCCCCCCCo3HnGE4NmGlCNb7F9fSGTGHl7ZFHS",
+                            PasswordHash = "$2a$11$tCRI6nAjIt/lNYHE9zX0YuGJFTEzSw1qxK5KYF8RMw7cyPrQMGBkm",
                             RoleId = 3,
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Username = "bn_hoang"
@@ -279,7 +852,7 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
                             FullName = "Lê Thị Thu",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$CCCCCCCCCCCCCCCCCCCCCCo3HnGE4NmGlCNb7F9fSGTGHl7ZFHS",
+                            PasswordHash = "$2a$11$tCRI6nAjIt/lNYHE9zX0YuGJFTEzSw1qxK5KYF8RMw7cyPrQMGBkm",
                             RoleId = 3,
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Username = "bn_le"
@@ -327,11 +900,213 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
                     b.ToTable("User_Sessions");
                 });
 
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiBoundingBox", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.AiResult", "Result")
+                        .WithMany()
+                        .HasForeignKey("ResultId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Result");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiChatResponse", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.MedicalImage", "Image")
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiInference", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.MedicalImage", "Image")
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MedicalDiagnosis.Core.Entities.AiModel", "Model")
+                        .WithMany()
+                        .HasForeignKey("ModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Image");
+
+                    b.Navigation("Model");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiResult", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.AiInference", "Inference")
+                        .WithMany()
+                        .HasForeignKey("InferenceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Inference");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.AiSuggestion", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.MedicalImage", "Image")
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Appointment", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MedicalDiagnosis.Core.Entities.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.ConversationParticipant", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.Conversation", "Conversation")
+                        .WithMany("Participants")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MedicalDiagnosis.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Diagnosis", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MedicalDiagnosis.Core.Entities.MedicalImage", "Image")
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Image");
+                });
+
             modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Doctor", b =>
                 {
                     b.HasOne("MedicalDiagnosis.Core.Entities.User", "User")
                         .WithOne()
                         .HasForeignKey("MedicalDiagnosis.Core.Entities.Doctor", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.ImageAssignment", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.User", "Admin")
+                        .WithMany()
+                        .HasForeignKey("AssignedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MedicalDiagnosis.Core.Entities.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MedicalDiagnosis.Core.Entities.MedicalImage", "Image")
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Admin");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.MedicalImage", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MedicalDiagnosis.Core.Entities.User", "Uploader")
+                        .WithMany()
+                        .HasForeignKey("UploadedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("Uploader");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Message", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.Conversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MedicalDiagnosis.Core.Entities.MedicalImage", "Image")
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MedicalDiagnosis.Core.Entities.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("Image");
+
+                    b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Notification", b =>
+                {
+                    b.HasOne("MedicalDiagnosis.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -369,6 +1144,13 @@ namespace MedicalDiagnosis.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MedicalDiagnosis.Core.Entities.Conversation", b =>
+                {
+                    b.Navigation("Messages");
+
+                    b.Navigation("Participants");
                 });
 #pragma warning restore 612, 618
         }

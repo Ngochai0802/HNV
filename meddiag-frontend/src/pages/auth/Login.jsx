@@ -55,7 +55,7 @@ export default function Login() {
             </div>
             <div>
               <h1 className="text-3xl font-extrabold text-blue-600 tracking-tight">MedDiag AI</h1>
-              <p className="text-slate-500 text-sm font-medium tracking-wide">smart diagnosis system</p>
+              <p className="text-slate-500 text-sm font-medium tracking-wide">Hệ thống chẩn đoán thông minh</p>
             </div>
           </div>
 
@@ -63,7 +63,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">
-                Username
+                Tên đăng nhập
               </label>
               <div className="relative">
                 <input
@@ -81,7 +81,7 @@ export default function Login() {
 
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">
-                Password
+                Mật khẩu
               </label>
               <div className="relative">
                 <input
@@ -97,14 +97,11 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                <span className="text-blue-600 font-medium">Remember me</span>
+                <span className="text-blue-600 font-medium">Ghi nhớ đăng nhập</span>
               </label>
-              <a href="#" className="text-blue-600 font-medium hover:underline">
-                Forgot Password ?
-              </a>
             </div>
 
             <button
@@ -115,7 +112,7 @@ export default function Login() {
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
-                "LOGIN"
+                "ĐĂNG NHẬP"
               )}
             </button>
           </form>
@@ -123,12 +120,12 @@ export default function Login() {
           {/* Footer */}
           <div className="mt-8 text-center">
             <p className="text-slate-500 text-sm font-medium">
-              Don't have an account?{" "}
+              Chưa có tài khoản?{" "}
               <Link
                 to="/register"
                 className="text-blue-600 hover:text-blue-700 font-bold ml-1 hover:underline"
               >
-                Sign Up
+                Đăng ký ngay
               </Link>
             </p>
             <div className="mt-4">

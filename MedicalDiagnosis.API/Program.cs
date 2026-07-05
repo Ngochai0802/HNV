@@ -8,9 +8,12 @@ using MedicalDiagnosis.API.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Database
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddSingleton<SlowQueryInterceptor>();
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sql => sql.CommandTimeout(120))
+    .AddInterceptors(sp.GetRequiredService<SlowQueryInterceptor>()));
 
 // 2. JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"]!;
@@ -48,12 +51,23 @@ builder.Services.AddSignalR();
 builder.Services.AddHttpClient("AI", c =>
 {
     c.BaseAddress = new Uri("http://localhost:8000");
+    c.Timeout = TimeSpan.FromSeconds(90);
 });
 
 // 5. Swagger
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        db.Database.ExecuteSqlRaw("ALTER TABLE Conversation_Participants ADD is_archived bit NOT NULL DEFAULT 0;");
+    }
+    catch { } // Bỏ qua nếu cột đã tồn tại
+}
 
 // 6. Middleware
 if (app.Environment.IsDevelopment())

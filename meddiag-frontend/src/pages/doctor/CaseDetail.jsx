@@ -4,7 +4,7 @@ import {
   getDoctorImage,
   createDiagnosis,
   getSuggestions,
-  useSuggestion,
+  useSuggestion as useSuggestionApi,
 } from "../../api/doctor";
 import toast from "react-hot-toast";
 import {
@@ -14,7 +14,10 @@ import {
   Lightbulb,
   CheckCircle,
   Save,
+  MessageCircle,
 } from "lucide-react";
+import { createConversation, getConversations, sendMessage } from "../../api/chat";
+import { useNavigate } from "react-router-dom";
 
 const SEVERITY = ["low", "medium", "high", "critical"];
 const SEVERITY_COLOR = {
@@ -37,6 +40,34 @@ export default function CaseDetail() {
   });
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
+  const navigate = useNavigate();
+
+  const handleMessagePatient = async () => {
+    if (!detail?.image?.patientId) return;
+    try {
+      // 1. Kiểm tra conversation đã tồn tại
+      const convRes = await getConversations();
+      const existingConv = convRes.data.find((c) =>
+        c.participants?.some((p) => p.userId === detail.image.patientId)
+      );
+
+      let convId;
+      if (existingConv) {
+        convId = existingConv.id;
+      } else {
+        const res = await createConversation(null, detail.image.patientId);
+        convId = res.data.conversationId;
+      }
+
+      // 2. Tự động gửi tin nhắn kèm context
+      const autoMsg = "Chào bạn, tôi có một số vấn đề cần trao đổi về ca bệnh của bạn.";
+      await sendMessage(convId, autoMsg, parseInt(id));
+
+      navigate(`/doctor/chat?convId=${convId}`);
+    } catch (err) {
+      toast.error("Không thể mở cuộc trò chuyện");
+    }
+  };
 
   useEffect(() => {
     getDoctorImage(id)
@@ -70,8 +101,6 @@ export default function CaseDetail() {
     ctx.fillStyle = "#ef4444";
     detail.boundingBoxes.forEach((box) => {
       ctx.strokeRect(box.x, box.y, box.width, box.height);
-      ctx.fillStyle = "rgba(239,68,68,0.15)";
-      ctx.fillRect(box.x, box.y, box.width, box.height);
       ctx.fillStyle = "#ef4444";
       ctx.fillText("⚠ Bất thường", box.x + 4, box.y - 8);
     });
@@ -79,7 +108,7 @@ export default function CaseDetail() {
 
   const handleUseSuggestion = async (s) => {
     setForm((prev) => ({ ...prev, diagnosisText: s.suggestedText }));
-    await useSuggestion(s.id, true).catch(() => {});
+    await useSuggestionApi(s.id, true).catch(() => {});
     setSuggestions((prev) =>
       prev.map((sg) => (sg.id === s.id ? { ...sg, isUsedByDoctor: true } : sg)),
     );
@@ -94,7 +123,10 @@ export default function CaseDetail() {
     setSaving(true);
     try {
       await createDiagnosis({ imageId: Number(id), ...form });
-      toast.success("Lưu chẩn đoán thành công! Bệnh nhân đã được thông báo.");
+      toast.success("Đã lưu và trả kết quả chẩn đoán thành công");
+      setTimeout(() => {
+        navigate("/doctor/cases");
+      }, 1000);
     } catch (err) {
       toast.error(err.response?.data?.message || "Lưu thất bại");
     } finally {
@@ -127,9 +159,17 @@ export default function CaseDetail() {
           <h1 className="text-xl font-bold text-slate-800 truncate">
             {detail.image.fileName}
           </h1>
-          <p className="text-slate-500 text-sm">
-            Bệnh nhân: {detail.image.patientName}
-          </p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-slate-500 text-sm">
+              Bệnh nhân: {detail.image.patientName}
+            </p>
+            <button
+              onClick={handleMessagePatient}
+              className="flex items-center gap-1.5 px-3 py-1 bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-lg text-xs font-bold transition-colors border border-teal-200"
+            >
+              <MessageCircle size={14} /> Nhắn tin
+            </button>
+          </div>
         </div>
       </div>
 
@@ -167,6 +207,15 @@ export default function CaseDetail() {
             </h2>
             {detail.aiResult ? (
               <div className="space-y-3">
+                <div className={`flex items-center justify-between p-3 rounded-xl ${
+                  detail.aiResult.severity === 'danger' ? 'bg-red-100 text-red-800' :
+                  detail.aiResult.severity === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
+                  <span className="font-medium text-sm">Mức độ:</span>
+                  <span className="font-bold">{detail.aiResult.severityText}</span>
+                </div>
+
                 <div className="flex justify-between p-3 bg-slate-50 rounded-xl">
                   <span className="text-slate-500 text-sm">Dự đoán</span>
                   <span className="font-bold text-slate-800">
@@ -187,6 +236,16 @@ export default function CaseDetail() {
                     }}
                   />
                 </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl mt-4">
+                  <div className="flex items-center gap-1.5 mb-1 text-blue-700">
+                    <span className="font-semibold text-sm">Khuyến nghị từ AI:</span>
+                  </div>
+                  <p className="text-blue-800 text-sm leading-relaxed">
+                    {detail.aiResult.recommendation}
+                  </p>
+                </div>
+
                 <p className="text-xs text-slate-400">
                   Model: {detail.inference?.modelName}
                 </p>
@@ -324,3 +383,6 @@ export default function CaseDetail() {
     </div>
   );
 }
+
+
+

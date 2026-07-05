@@ -2,12 +2,16 @@ import { useEffect, useState } from "react";
 import { getUsers, toggleUser, createDoctor } from "../../api/admin";
 import toast from "react-hot-toast";
 import { UserPlus, X, Search } from "lucide-react";
+import useAuthStore from "../../store/useAuthStore";
 
 export default function Users() {
+  const currentUser = useAuthStore((s) => s.user);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("patient");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     username: "",
@@ -40,13 +44,44 @@ export default function Users() {
   };
 
   const handleCreate = async () => {
-    if (!form.username || !form.password || !form.email || !form.fullName) {
+    // Trim spaces
+    const data = {
+      ...form,
+      username: form.username.trim(),
+      email: form.email.trim(),
+      fullName: form.fullName.trim(),
+    };
+
+    if (!data.username || !form.password || !data.email || !data.fullName) {
       toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
       return;
     }
+
+    if (data.username.length < 3) {
+      toast.error("Username phải có ít nhất 3 ký tự");
+      return;
+    }
+
+    if (form.password.length < 6) {
+      toast.error("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email)) {
+      toast.error("Email không hợp lệ");
+      return;
+    }
+
+    if (form.yearsOfExperience < 0) {
+      toast.error("Kinh nghiệm không được là số âm");
+      return;
+    }
+
     try {
       await createDoctor({
-        ...form,
+        ...data,
+        password: form.password,
         yearsOfExperience: Number(form.yearsOfExperience),
       });
       toast.success("Tạo tài khoản bác sĩ thành công!");
@@ -79,6 +114,16 @@ export default function Users() {
       u.username.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesTab && matchesSearch;
   });
+
+  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchTerm]);
 
   if (loading)
     return (
@@ -224,10 +269,10 @@ export default function Users() {
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((u) => (
+              paginatedUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-50 transition">
                   <td className="px-5 py-4 font-medium text-slate-800">
-                  {u.fullName}
+                  {u.fullName} {u.id === currentUser?.id && <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md ml-2">Bạn</span>}
                 </td>
                 <td className="px-5 py-4 text-slate-500 text-sm">
                   {u.username}
@@ -248,19 +293,43 @@ export default function Users() {
                   </span>
                 </td>
                 <td className="px-5 py-4">
-                  <button
-                    onClick={() => handleToggle(u.id)}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition
-                      ${u.isActive ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-green-100 text-green-600 hover:bg-green-200"}`}
-                  >
-                    {u.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
-                  </button>
+                  {u.id !== currentUser?.id && (
+                    <button
+                      onClick={() => handleToggle(u.id)}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition
+                        ${u.isActive ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-green-100 text-green-600 hover:bg-green-200"}`}
+                    >
+                      {u.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
+                    </button>
+                  )}
                 </td>
               </tr>
             )))}
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-3 pt-2">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent transition"
+          >
+            Trước
+          </button>
+          <span className="text-sm font-medium text-slate-500 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
+            Trang {currentPage} / {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent transition"
+          >
+            Sau
+          </button>
+        </div>
+      )}
     </div>
   );
 }

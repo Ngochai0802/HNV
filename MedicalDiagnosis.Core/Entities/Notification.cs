@@ -22,6 +22,9 @@ public class Notification
     [Column("is_read")]
     public bool IsRead { get; set; } = false;
 
+    [Column("related_url")]
+    public string? RelatedUrl { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 

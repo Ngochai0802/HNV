@@ -42,6 +42,10 @@ export default function PatientAppointments() {
     appointmentTime: "",
     note: "",
   });
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     Promise.all([getAppointments(), getPatientDoctors()])
@@ -84,8 +88,30 @@ export default function PatientAppointments() {
       </div>
     );
 
+  const filteredAppointments = appointments.filter((a) => {
+    // Lọc theo trạng thái
+    if (statusFilter !== "all" && a.status !== statusFilter) return false;
+
+    // Lọc theo ngày cụ thể
+    if (selectedDate) {
+      const aDate = new Date(a.appointmentTime);
+      const sDate = new Date(selectedDate);
+      if (
+        aDate.getDate() !== sDate.getDate() ||
+        aDate.getMonth() !== sDate.getMonth() ||
+        aDate.getFullYear() !== sDate.getFullYear()
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
+  const paginatedAppointments = filteredAppointments.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 w-full">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -100,6 +126,48 @@ export default function PatientAppointments() {
         >
           <CalendarPlus size={16} /> Đặt lịch mới
         </button>
+      </div>
+
+      {/* Bộ lọc */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1">
+          {[
+            { id: "all", label: "Tất cả" },
+            { id: "pending", label: "Chờ xác nhận" },
+            { id: "confirmed", label: "Đã xác nhận" },
+            { id: "cancelled", label: "Đã hủy" },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => { setStatusFilter(f.id); setPage(1); }}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                statusFilter === f.id
+                  ? "bg-slate-800 text-white shadow-md"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {selectedDate && (
+            <button
+              onClick={() => { setSelectedDate(""); setPage(1); }}
+              className="text-xs text-blue-600 font-bold hover:underline"
+            >
+              Bỏ lọc ngày
+            </button>
+          )}
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => { setSelectedDate(e.target.value); setPage(1); }}
+            className="bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-xl px-4 py-2 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+            title="Lọc theo ngày cụ thể"
+          />
+        </div>
       </div>
 
       {/* Form đặt lịch */}
@@ -145,6 +213,7 @@ export default function PatientAppointments() {
             </label>
             <input
               type="datetime-local"
+              min={new Date(Date.now() + 60 * 60 * 1000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
               value={form.appointmentTime}
               onChange={(e) =>
                 setForm({ ...form, appointmentTime: e.target.value })
@@ -183,19 +252,19 @@ export default function PatientAppointments() {
       )}
 
       {/* Danh sách lịch */}
-      {appointments.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+      {paginatedAppointments.length === 0 ? (
+        <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-100">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100">
             <Calendar size={28} className="text-slate-400" />
           </div>
-          <p className="text-slate-500 font-medium">Chưa có lịch khám nào</p>
+          <p className="text-slate-500 font-medium">Chưa có lịch khám nào phù hợp</p>
           <p className="text-slate-400 text-sm mt-1">
-            Đặt lịch để khám với bác sĩ chuyên khoa
+            Hãy thử thay đổi bộ lọc hoặc đặt lịch mới
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {appointments.map((a) => {
+        <div className="grid gap-4">
+          {paginatedAppointments.map((a) => {
             const s = STATUS[a.status] || {
               label: a.status,
               color: "bg-slate-50 text-slate-600 border border-slate-200",
@@ -238,7 +307,12 @@ export default function PatientAppointments() {
                   </p>
                   {a.note && (
                     <p className="text-slate-400 text-xs mt-1 truncate">
-                      {a.note}
+                      Ghi chú: {a.note}
+                    </p>
+                  )}
+                  {a.status === 'cancelled' && a.cancelReason && (
+                    <p className="text-red-500 font-medium text-xs mt-1.5 bg-red-50 p-2 rounded-lg border border-red-100">
+                      Lý do hủy: {a.cancelReason}
                     </p>
                   )}
                 </div>
@@ -252,6 +326,43 @@ export default function PatientAppointments() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-8">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white shadow-sm transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          
+          <div className="flex items-center gap-1.5">
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                className={`w-10 h-10 rounded-xl font-bold text-sm transition-all shadow-sm ${
+                  page === i + 1
+                    ? "bg-blue-600 text-white border border-blue-600"
+                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white shadow-sm transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
         </div>
       )}
     </div>

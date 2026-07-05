@@ -29,7 +29,7 @@ export default function AdminLayout() {
             to="/admin"
             className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-800 transition"
           >
-            <LayoutDashboard size={18} /> Dashboard
+            <LayoutDashboard size={18} /> Tổng quan
           </Link>
           <Link
             to="/admin/users"

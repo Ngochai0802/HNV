@@ -29,6 +29,25 @@ public class AppointmentController : ControllerBase
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
+        // Kiểm tra giới hạn chống Spam (>= 5 pending)
+        var pendingCount = await _context.Appointments.CountAsync(a => a.PatientId == userId && a.Status == "pending");
+        if (pendingCount >= 5)
+            return BadRequest(new { message = "Bạn đã vượt quá giới hạn 5 lịch hẹn chờ duyệt" });
+
+        // Kiểm tra ràng buộc thời gian (cách tối thiểu 1 tiếng)
+        if (req.AppointmentTime < DateTime.Now.AddHours(1))
+            return BadRequest(new { message = "Thời gian hẹn phải cách thời điểm hiện tại ít nhất 1 giờ." });
+
+        // Kiểm tra trùng lịch hẹn (Conflict gap 30 phút)
+        var isBooked = await _context.Appointments
+            .AnyAsync(a => a.DoctorId == req.DoctorId 
+                        && a.Status != "cancelled" 
+                        && a.AppointmentTime >= req.AppointmentTime.AddMinutes(-30)
+                        && a.AppointmentTime <= req.AppointmentTime.AddMinutes(30));
+                        
+        if (isBooked)
+            return BadRequest(new { message = "Giờ hẹn trùng với lịch bận của bác sĩ" });
+
         var appointment = new Appointment
         {
             PatientId       = userId,
@@ -41,25 +60,30 @@ public class AppointmentController : ControllerBase
 
         _context.Appointments.Add(appointment);
 
-        // 🔥 Lấy tên bệnh nhân
-        var patient = await _context.Users.FindAsync(userId);
-        var patientName = patient?.FullName ?? "Bệnh nhân";
+        // Tuần tự — DbContext KHÔNG thread-safe, không dùng Task.WhenAll
+        var patientName = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.FullName)
+            .FirstOrDefaultAsync() ?? "Bệnh nhân";
 
-        // 🔥 Lấy ADMIN
-        var admins = await _context.Users
+        var adminIds = await _context.Users
+            .AsNoTracking()
             .Where(u => u.Role!.RoleName == "admin" && u.IsActive && !u.IsDeleted)
+            .Select(u => u.Id)
             .ToListAsync();
 
         // 🔥 Gửi thông báo cho ADMIN
-        foreach (var admin in admins)
+        foreach (var adminId in adminIds)
         {
             _context.Notifications.Add(new Notification
             {
-                UserId    = admin.Id,
-                Title     = "Có lịch khám mới cần duyệt",
-                Content   = $"{patientName} đặt lịch với BS ID {req.DoctorId} vào {req.AppointmentTime:dd/MM/yyyy HH:mm}",
-                IsRead    = false,
-                CreatedAt = DateTime.Now
+                UserId     = adminId,
+                Title      = "Có lịch khám mới cần duyệt",
+                Content    = $"{patientName} đặt lịch với BS ID {req.DoctorId} vào {req.AppointmentTime:dd/MM/yyyy HH:mm}",
+                IsRead     = false,
+                RelatedUrl = "/admin/appointments",
+                CreatedAt  = DateTime.Now
             });
         }
 
@@ -83,6 +107,7 @@ public class AppointmentController : ControllerBase
         var role   = User.FindFirst(ClaimTypes.Role)!.Value;
 
         var query = _context.Appointments
+            .AsNoTracking()
             .Include(a => a.Patient).ThenInclude(p => p!.User)
             .Include(a => a.Doctor).ThenInclude(d => d!.User)
             .AsQueryable();
@@ -91,7 +116,7 @@ public class AppointmentController : ControllerBase
             query = query.Where(a => a.PatientId == userId);
 
         else if (role == "doctor")
-            query = query.Where(a => a.DoctorId == userId);
+            query = query.Where(a => a.DoctorId == userId && a.Status != "pending");
 
         var appointments = await query
             .OrderByDescending(a => a.AppointmentTime)
@@ -101,6 +126,7 @@ public class AppointmentController : ControllerBase
                 a.AppointmentTime,
                 a.Status,
                 a.Note,
+                a.CancelReason,
                 a.CreatedAt,
                 PatientName = a.Patient!.User!.FullName,
                 DoctorName  = a.Doctor!.User!.FullName,
@@ -127,16 +153,42 @@ public class AppointmentController : ControllerBase
 
         appointment.Status = req.Status;
 
-        // 🔥 Nếu xác nhận → notify bác sĩ
+        // 🔥 Nếu xác nhận → notify bác sĩ và bệnh nhân
         if (req.Status == "confirmed")
         {
+            // Báo cho Bác sĩ
             _context.Notifications.Add(new Notification
             {
-                UserId    = appointment.DoctorId,
-                Title     = "Lịch khám đã được xác nhận",
-                Content   = $"Bệnh nhân {appointment.Patient!.User!.FullName} đặt lịch vào {appointment.AppointmentTime:dd/MM/yyyy HH:mm}",
-                IsRead    = false,
-                CreatedAt = DateTime.Now
+                UserId     = appointment.DoctorId,
+                Title      = "Lịch khám đã được xác nhận",
+                Content    = $"Bệnh nhân {appointment.Patient!.User!.FullName} đặt lịch vào {appointment.AppointmentTime:dd/MM/yyyy HH:mm}",
+                IsRead     = false,
+                RelatedUrl = "/doctor/appointments",
+                CreatedAt  = DateTime.Now
+            });
+
+            // Báo cho Bệnh nhân
+            _context.Notifications.Add(new Notification
+            {
+                UserId     = appointment.PatientId,
+                Title      = "Lịch hẹn đã được duyệt",
+                Content    = $"Lịch hẹn lúc {appointment.AppointmentTime:HH:mm dd/MM/yyyy} đã được xác nhận.",
+                IsRead     = false,
+                RelatedUrl = "/patient/appointments",
+                CreatedAt  = DateTime.Now
+            });
+        }
+        else if (req.Status == "cancelled")
+        {
+            // Báo cho Bệnh nhân khi bị hủy
+            _context.Notifications.Add(new Notification
+            {
+                UserId     = appointment.PatientId,
+                Title      = "Lịch hẹn bị hủy",
+                Content    = $"Lịch hẹn lúc {appointment.AppointmentTime:HH:mm dd/MM/yyyy} đã bị từ chối/hủy.",
+                IsRead     = false,
+                RelatedUrl = "/patient/appointments",
+                CreatedAt  = DateTime.Now
             });
         }
 

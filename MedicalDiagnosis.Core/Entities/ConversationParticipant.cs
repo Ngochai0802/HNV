@@ -19,6 +19,9 @@ public class ConversationParticipant
     [Column("role")]
     public string Role { get; set; } = "member";
 
+    [Column("is_archived")]
+    public bool IsArchived { get; set; } = false;
+
     [ForeignKey("ConversationId")]
     public virtual Conversation? Conversation { get; set; }
 

@@ -25,6 +25,9 @@ public class Appointment
     [Column("note")]
     public string? Note { get; set; }
 
+    [Column("cancel_reason")]
+    public string? CancelReason { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 

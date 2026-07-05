@@ -24,8 +24,9 @@ public class PatientController : ControllerBase
     public async Task<IActionResult> GetImages()
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
+ 
         var images = await _context.MedicalImages
+            .AsNoTracking()
             .Where(m => m.PatientId == userId && !m.IsDeleted)
             .OrderByDescending(m => m.UploadDate)
             .Select(m => new
@@ -37,12 +38,17 @@ public class PatientController : ControllerBase
                 m.UploadDate,
                 AiStatus = _context.AiInferences
                     .Where(i => i.ImageId == m.Id)
+                    .OrderByDescending(i => i.CreatedAt)
                     .Select(i => i.Status)
+                    .FirstOrDefault(),
+                AiResult = _context.AiResults
+                    .Where(r => _context.AiInferences.Any(i => i.Id == r.InferenceId && i.ImageId == m.Id && i.Status == "success"))
+                    .Select(r => r.PredictionLabel)
                     .FirstOrDefault(),
                 HasDiagnosis = _context.Diagnoses.Any(d => d.ImageId == m.Id)
             })
             .ToListAsync();
-
+ 
         return Ok(images);
     }
 
@@ -79,30 +85,19 @@ public class PatientController : ControllerBase
                 diagnosis.SeverityLevel,
                 diagnosis.CreatedAt,
                 DoctorId = diagnosis.DoctorId,
-                DoctorName = diagnosis.Doctor!.User!.FullName
+                DoctorName = diagnosis.Doctor?.User?.FullName ?? "Bác sĩ"
             },
             AiResult = aiResult
         });
     }
 
-    // ✅ FIX BUG 1
-    // GET /api/patient/doctors — chỉ trả về bác sĩ được phân công cho bệnh nhân
+    // GET /api/patient/doctors — Danh sách tất cả bác sĩ để đặt lịch khám
     [HttpGet("doctors")]
     public async Task<IActionResult> GetDoctors()
     {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-        // Lấy danh sách DoctorId đã được phân công ảnh của bệnh nhân này
-        var assignedDoctorIds = await _context.ImageAssignments
-            .Include(a => a.Image)
-            .Where(a => a.Image!.PatientId == userId)
-            .Select(a => a.DoctorId)
-            .Distinct()
-            .ToListAsync();
-
         var doctors = await _context.Doctors
             .Include(d => d.User)
-            .Where(d => assignedDoctorIds.Contains(d.UserId) && d.User!.IsActive && !d.User.IsDeleted)
+            .Where(d => d.User!.IsActive && !d.User.IsDeleted)
             .Select(d => new
             {
                 d.UserId,
@@ -115,32 +110,60 @@ public class PatientController : ControllerBase
         return Ok(doctors);
     }
 
+    // GET /api/patient/assigned-doctors — Danh sách bác sĩ phụ trách ca bệnh của bệnh nhân này
+    [HttpGet("assigned-doctors")]
+    public async Task<IActionResult> GetAssignedDoctors()
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var assignedDoctors = await _context.ImageAssignments
+            .Where(a => a.Image!.PatientId == userId)
+            .Select(a => a.Doctor)
+            .Distinct()
+            .Where(d => d!.User!.IsActive && !d.User.IsDeleted)
+            .Select(d => new
+            {
+                d!.UserId,
+                d.User!.FullName,
+                d.Specialization,
+                d.YearsOfExperience
+            })
+            .ToListAsync();
+
+        return Ok(assignedDoctors);
+    }
+
     // GET /api/patient/profile
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfile()
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-        var user = await _context.Users
-            .Include(u => u.Role)
-            .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
-        if (user == null) return NotFound();
+        // Lấy User + Role + Patient trong 1 LEFT JOIN query
+        var profile = await (
+            from u in _context.Users
+            where u.Id == userId && !u.IsDeleted
+            join r in _context.Roles on u.RoleId equals r.Id into roles
+            from role in roles.DefaultIfEmpty()
+            join p in _context.Patients on u.Id equals p.UserId into patients
+            from pat in patients.DefaultIfEmpty()
+            select new
+            {
+                u.Id,
+                u.FullName,
+                u.Email,
+                u.Username,
+                Role        = role != null ? role.RoleName : null,
+                DateOfBirth = pat != null ? pat.DateOfBirth : (DateTime?)null,
+                Gender      = pat != null ? pat.Gender      : null,
+                Phone       = pat != null ? pat.Phone       : null,
+                Address     = pat != null ? pat.Address     : null
+            }
+        ).AsNoTracking().FirstOrDefaultAsync();
 
-        var patient = await _context.Patients
-            .FirstOrDefaultAsync(p => p.UserId == userId);
+        if (profile == null) return NotFound();
 
-        return Ok(new
-        {
-            user.Id,
-            user.FullName,
-            user.Email,
-            user.Username,
-            Role = user.Role!.RoleName,
-            DateOfBirth = patient?.DateOfBirth,
-            Gender      = patient?.Gender,
-            Phone       = patient?.Phone,
-            Address     = patient?.Address
-        });
+        return Ok(profile);
     }
 
     // PUT /api/patient/profile
@@ -157,14 +180,39 @@ public class PatientController : ControllerBase
 
         // Cập nhật User
         user.FullName  = req.FullName ?? user.FullName;
-        user.Email     = req.Email    ?? user.Email;
+        
+        if (req.Email != null && req.Email != user.Email)
+        {
+            bool emailExists = await _context.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.Email == req.Email && u.Id != userId);
+
+            if (emailExists)
+                return BadRequest(new { message = "Email đã được sử dụng" });
+
+            user.Email = req.Email;
+        }
+        
         user.UpdatedAt = DateTime.Now;
 
         // Cập nhật Patient
-        if (req.DateOfBirth.HasValue) patient.DateOfBirth = req.DateOfBirth;
-        if (req.Gender  != null)     patient.Gender      = req.Gender;
-        if (req.Phone   != null)     patient.Phone       = req.Phone;
-        if (req.Address != null)     patient.Address     = req.Address;
+        // Cập nhật Patient
+if (req.DateOfBirth.HasValue) patient.DateOfBirth = req.DateOfBirth;
+if (req.Gender  != null)     patient.Gender      = req.Gender;
+
+if (req.Phone != null && req.Phone != patient.Phone)
+{
+    bool phoneExists = await _context.Patients
+        .AsNoTracking()
+        .AnyAsync(p => p.Phone == req.Phone && p.UserId != userId);
+
+    if (phoneExists)
+        return BadRequest(new { message = "Số điện thoại đã được sử dụng" });
+
+    patient.Phone = req.Phone;
+}
+
+if (req.Address != null)     patient.Address     = req.Address;
 
         await _context.SaveChangesAsync();
 

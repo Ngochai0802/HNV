@@ -11,15 +11,19 @@ public class User
     public int Id { get; set; }
 
     [Column("username")]
+    [MaxLength(100)]
     public string Username { get; set; } = null!;
 
     [Column("password_hash")]
+    [MaxLength(255)]
     public string PasswordHash { get; set; } = null!;
 
     [Column("email")]
+    [MaxLength(150)]
     public string Email { get; set; } = null!;
 
     [Column("full_name")]
+    [MaxLength(200)]
     public string FullName { get; set; } = null!;
 
     [Column("role_id")]

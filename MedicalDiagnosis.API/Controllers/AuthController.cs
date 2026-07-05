@@ -25,48 +25,69 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req)
     {
-        // Kiểm tra trùng username / email
-        if (await _context.Users.AnyAsync(u => u.Username == req.Username))
+        // Kiểm tra trùng username / email (AsNoTracking để không giữ tracking lock)
+        // DbContext KHÔNG thread-safe → phải chạy tuần tự, không dùng Task.WhenAll
+        var usernameExists = await _context.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Username == req.Username);
+        if (usernameExists)
             return BadRequest(new { message = "Username đã tồn tại" });
- 
-        if (await _context.Users.AnyAsync(u => u.Email == req.Email))
+
+        var emailExists = await _context.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Email == req.Email);
+        if (emailExists)
             return BadRequest(new { message = "Email đã được sử dụng" });
- 
-        var patientRole = await _context.Roles.FirstAsync(r => r.RoleName == "patient");
- 
+
+        var phoneExists = await _context.Patients
+            .AsNoTracking()
+            .AnyAsync(p => p.Phone == req.Phone);
+        if (phoneExists)
+            return BadRequest(new { message = "Số điện thoại đã được sử dụng" });
+
+        var patientRole = await _context.Roles
+            .AsNoTracking()
+            .FirstAsync(r => r.RoleName == "patient");
+
+        // Hash password sau khi validate xong (CPU-bound ~200-300ms)
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(req.Password);
+
         var user = new User
         {
             Username     = req.Username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+            PasswordHash = passwordHash,
             Email        = req.Email,
             FullName     = req.FullName,
             RoleId       = patientRole.Id,
             IsActive     = true,
             IsDeleted    = false,
-            CreatedAt    = DateTime.Now
+            CreatedAt    = DateTime.UtcNow,
+            UpdatedAt    = DateTime.UtcNow
         };
-        try{
+
+        try
+        {
             _context.Users.Add(user);
-        await _context.SaveChangesAsync();
- 
-        
-        _context.Patients.Add(new Patient
-{
-    UserId      = user.Id,
-    DateOfBirth = req.DateOfBirth,
-    Gender      = req.Gender,
-    Phone       = req.Phone,
-    Address     = req.Address,
-});
-        await _context.SaveChangesAsync();
- 
-        return Ok(new { message = "Đăng ký thành công", userId = user.Id });
-        }catch(Exception ex){
-            var innerError = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-    Console.WriteLine("LỖI THẬT ĐÂY: " + innerError); // Xem ở màn hình Console của Visual Studio
-    return StatusCode(500, new { message = "Lỗi DB ngầm", details = innerError });
+            await _context.SaveChangesAsync();
+
+            _context.Patients.Add(new Patient
+            {
+                UserId      = user.Id,
+                DateOfBirth = req.DateOfBirth,
+                Gender      = req.Gender,
+                Phone       = req.Phone,
+                Address     = req.Address,
+            });
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đăng ký thành công", userId = user.Id });
         }
-        
+        catch (Exception ex)
+        {
+            var innerError = ex.InnerException?.Message ?? ex.Message;
+            Console.WriteLine("LỖI ĐĂNG KÝ: " + innerError);
+            return StatusCode(500, new { message = "Lỗi server", details = innerError });
+        }
     }
  
     // POST /api/auth/login
@@ -74,8 +95,19 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
         var user = await _context.Users
-            .Include(u => u.Role)
-            .FirstOrDefaultAsync(u => u.Username == req.Username && !u.IsDeleted);
+            .AsNoTracking()
+            .Where(u => u.Username == req.Username && !u.IsDeleted)
+            .Select(u => new
+            {
+                u.Id,
+                u.Username,
+                u.PasswordHash,
+                u.Email,
+                u.FullName,
+                u.IsActive,
+                RoleName = u.Role!.RoleName
+            })
+            .FirstOrDefaultAsync();
  
         if (user == null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
             return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu" });
@@ -84,12 +116,24 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Tài khoản đã bị vô hiệu hóa" });
  
         // Cập nhật last_login & reset failed attempts
-        user.LastLogin      = DateTime.Now;
-        user.FailedAttempts = 0;
-        user.UpdatedAt      = DateTime.Now;
+        var now = DateTime.Now;
+        await _context.Users
+            .Where(u => u.Id == user.Id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.LastLogin, now)
+                .SetProperty(u => u.FailedAttempts, 0)
+                .SetProperty(u => u.UpdatedAt, now));
  
         // Tạo tokens
-        var accessToken  = _jwt.GenerateAccessToken(user);
+        var tokenUser = new User
+        {
+            Id       = user.Id,
+            Username = user.Username,
+            Email    = user.Email,
+            FullName = user.FullName,
+            Role     = new Role { RoleName = user.RoleName }
+        };
+        var accessToken  = _jwt.GenerateAccessToken(tokenUser);
         var refreshToken = _jwt.GenerateRefreshToken();
  
         // Lưu refresh token vào DB
@@ -99,8 +143,8 @@ public class AuthController : ControllerBase
             RefreshToken = refreshToken,
             DeviceInfo   = Request.Headers["User-Agent"].ToString(),
             IpAddress    = HttpContext.Connection.RemoteIpAddress?.ToString(),
-            ExpiresAt    = DateTime.Now.AddDays(7),
-            CreatedAt    = DateTime.Now
+            ExpiresAt    = now.AddDays(7),
+            CreatedAt    = now
         });
  
         await _context.SaveChangesAsync();
@@ -115,7 +159,7 @@ public class AuthController : ControllerBase
                 Username = user.Username,
                 Email    = user.Email,
                 FullName = user.FullName,
-                Role     = user.Role!.RoleName
+                Role     = user.RoleName
             }
         });
     }
@@ -125,10 +169,10 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Refresh([FromBody] RefreshRequest req)
     {
         var session = await _context.UserSessions
-            .Include(s => s.User).ThenInclude(u => u.Role)
+            .Include(s => s.User!).ThenInclude(u => u.Role)
             .FirstOrDefaultAsync(s => s.RefreshToken == req.RefreshToken);
  
-        if (session == null || session.ExpiresAt < DateTime.Now)
+        if (session == null || session.ExpiresAt < DateTime.Now || session.User == null)
             return Unauthorized(new { message = "Refresh token không hợp lệ hoặc đã hết hạn" });
  
         var newAccessToken  = _jwt.GenerateAccessToken(session.User);

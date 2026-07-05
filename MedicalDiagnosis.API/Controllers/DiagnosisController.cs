@@ -80,7 +80,7 @@ public class DiagnosisController : ControllerBase
         }
 
         // --- 5. Xử lý lưu ảnh Heatmap từ AI ---
-        string heatmapUrl = null;
+        string? heatmapUrl = null;
         if (!string.IsNullOrEmpty(aiResult.HeatmapBase64))
         {
             try 
@@ -157,9 +157,26 @@ public class DiagnosisController : ControllerBase
     public async Task<IActionResult> GetById(int id)
     {
         var d = await _db.Diagnoses
-            .Include(x => x.Image)
-            .Include(x => x.Doctor)
-            .FirstOrDefaultAsync(x => x.Id == id);
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new
+            {
+                x.Id,
+                x.ImageId,
+                x.DoctorId,
+                x.DiagnosisText,
+                x.FinalResult,
+                x.SeverityLevel,
+                x.HasAbnormality,
+                x.AIFindings,
+                x.HeatmapPath,
+                x.Confidence,
+                x.CreatedAt,
+                ImageUrl   = x.Image != null ? x.Image.ImageUrl  : null,
+                ImageFile  = x.Image != null ? x.Image.FileName  : null,
+                DoctorName = x.Doctor != null ? x.Doctor.User!.FullName : null
+            })
+            .FirstOrDefaultAsync();
 
         if (d == null) return NotFound();
         return Ok(d);
@@ -169,10 +186,26 @@ public class DiagnosisController : ControllerBase
     public async Task<IActionResult> GetByImage(int imageId)
     {
         var d = await _db.Diagnoses
-            .Include(x => x.Image)
-            .Include(x => x.Doctor)
+            .AsNoTracking()
             .Where(x => x.ImageId == imageId)
             .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new
+            {
+                x.Id,
+                x.ImageId,
+                x.DoctorId,
+                x.DiagnosisText,
+                x.FinalResult,
+                x.SeverityLevel,
+                x.HasAbnormality,
+                x.AIFindings,
+                x.HeatmapPath,
+                x.Confidence,
+                x.CreatedAt,
+                ImageUrl   = x.Image != null ? x.Image.ImageUrl  : null,
+                ImageFile  = x.Image != null ? x.Image.FileName  : null,
+                DoctorName = x.Doctor != null ? x.Doctor.User!.FullName : null
+            })
             .FirstOrDefaultAsync();
 
         if (d == null) return NotFound("Chưa có chẩn đoán cho ảnh này.");
@@ -183,10 +216,25 @@ public class DiagnosisController : ControllerBase
     public async Task<IActionResult> GetByPatient(int patientId)
     {
         var list = await _db.Diagnoses
-            .Include(x => x.Image)
-            .Include(x => x.Doctor)
+            .AsNoTracking()
             .Where(x => x.Image!.PatientId == patientId)
             .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new
+            {
+                x.Id,
+                x.ImageId,
+                x.DoctorId,
+                x.DiagnosisText,
+                x.FinalResult,
+                x.SeverityLevel,
+                x.HasAbnormality,
+                x.HeatmapPath,
+                x.Confidence,
+                x.CreatedAt,
+                ImageUrl   = x.Image != null ? x.Image.ImageUrl  : null,
+                ImageFile  = x.Image != null ? x.Image.FileName  : null,
+                DoctorName = x.Doctor != null ? x.Doctor.User!.FullName : null
+            })
             .ToListAsync();
 
         return Ok(list);

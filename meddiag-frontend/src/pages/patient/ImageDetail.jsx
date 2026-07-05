@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getImageDetail } from "../../api/image";
-import { getDiagnosis, getMyDoctor } from "../../api/patient";
+import { getMyDoctor } from "../../api/patient";
 import { createConversation, sendMessage, getConversations } from "../../api/chat";
 import { ArrowLeft, Brain, Stethoscope, MessageCircle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -15,24 +15,56 @@ export default function ImageDetail() {
   const [consulting, setConsulting] = useState(false);
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
+  // Dùng ref cho interval để tránh closure stale
+  const intervalRef = useRef(null);
 
   useEffect(() => {
-    Promise.all([
-      getImageDetail(id),
-      getDiagnosis(id).catch(() => ({ data: null })),
-    ])
-      .then(([detailRes, diagRes]) => {
-        setDetail(detailRes.data);
-        setDiagnosis(diagRes.data?.diagnosis ?? null);
-      })
-      .finally(() => setLoading(false));
+    const fetchData = () => {
+      // Chỉ cần 1 API call — getImageDetail đã bao gồm cả diagnosis
+      getImageDetail(id)
+        .then((detailRes) => {
+          const data = detailRes.data;
+          setDetail(data);
+          setDiagnosis(data?.diagnosis || null);
+
+          // Nếu AI đang xử lý → poll mỗi 3 giây
+          if (data?.inference?.status === "pending") {
+            if (!intervalRef.current) {
+              intervalRef.current = setInterval(fetchData, 3000);
+            }
+          } else {
+            // AI xong → dừng poll
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+          }
+        })
+        .finally(() => setLoading(false));
+    };
+
+    fetchData();
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [id]);
 
   // Vẽ bounding box lên canvas
   const drawBoxes = () => {
     const canvas = canvasRef.current;
     const img = imgRef.current;
-    if (!canvas || !img || !detail?.boundingBoxes?.length) return;
+    if (!canvas || !img || !detail?.boundingBoxes?.length) {
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      return;
+    }
+    
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
     const ctx = canvas.getContext("2d");
@@ -46,6 +78,10 @@ export default function ImageDetail() {
       ctx.fillText("Bất thường", box.x + 4, box.y - 6);
     });
   };
+
+  useEffect(() => {
+    if (detail) drawBoxes();
+  }, [detail]);
 
   // =============================================
   // Xử lý nút "Nhận tư vấn Bác sĩ về ca này"
@@ -82,15 +118,14 @@ export default function ImageDetail() {
         ? `${(detail.aiResult.confidenceScore * 100).toFixed(1)}%`
         : "—";
       const diagText = diagnosis
-        ? `\n📋 Chẩn đoán bác sĩ: ${diagnosis.finalResult} (${diagnosis.severityLevel})`
-        : "\n📋 Chẩn đoán bác sĩ: Chưa có";
+        ? `\nChẩn đoán bác sĩ: ${diagnosis.finalResult} (${diagnosis.severityLevel})`
+        : "\nChẩn đoán bác sĩ: Chưa có";
 
       const autoMsg =
-        `🩻 Bác sĩ ơi, em cần tư vấn về ca chẩn đoán ảnh X-quang:\n` +
-        `📁 Ảnh: ${detail?.fileName}\n` +
-        `🤖 Kết quả AI: ${aiLabel} (độ tin cậy ${aiConf})` +
+        `Bác sĩ ơi, em cần tư vấn về ca X-quang: ${detail?.fileName}.\n` +
+        `Kết quả AI: ${aiLabel} (${aiConf}).` +
         diagText +
-        `\n\nEm có thể được giải thích thêm về kết quả này không ạ?`;
+        `\nMong bác sĩ giải thích thêm ạ.`;
 
       await sendMessage(convId, autoMsg, parseInt(id));
 
@@ -166,6 +201,15 @@ export default function ImageDetail() {
             </div>
             {detail.aiResult ? (
               <div className="space-y-3">
+                <div className={`flex items-center justify-between p-3 rounded-xl ${
+                  detail.aiResult.severity === 'danger' ? 'bg-red-100 text-red-800' :
+                  detail.aiResult.severity === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
+                  <span className="font-medium text-sm">Mức độ:</span>
+                  <span className="font-bold">{detail.aiResult.severityText}</span>
+                </div>
+
                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
                   <span className="text-slate-500 text-sm">Dự đoán</span>
                   <span className="font-bold text-slate-800">
@@ -183,6 +227,15 @@ export default function ImageDetail() {
                     className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-700"
                     style={{ width: `${detail.aiResult.confidenceScore * 100}%` }}
                   />
+                </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl mt-4">
+                  <div className="flex items-center gap-1.5 mb-1 text-blue-700">
+                    <span className="font-semibold text-sm">Khuyến nghị từ AI:</span>
+                  </div>
+                  <p className="text-blue-800 text-sm leading-relaxed">
+                    {detail.aiResult.recommendation}
+                  </p>
                 </div>
               </div>
             ) : (

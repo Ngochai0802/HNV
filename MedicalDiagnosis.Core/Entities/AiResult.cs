@@ -17,7 +17,7 @@ public class AiResult
     public string PredictionLabel { get; set; } = null!;
 
     [Column("confidence_score")]
-    public double ConfidenceScore { get; set; }
+    public double? ConfidenceScore { get; set; }
 
     // Cột này trong DB đang là NULL (màu vàng trong ảnh), nên để string?
     [Column("processed_image_url")]

@@ -46,7 +46,7 @@ public class AdminController : ControllerBase
     }
 
     // =========================================
-    // 🔥 BUG 3 — QUẢN LÝ LỊCH KHÁM
+    // QUẢN LÝ LỊCH KHÁM
     // =========================================
 
     // GET /api/admin/appointments
@@ -54,6 +54,7 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetAppointments()
     {
         var appointments = await _context.Appointments
+            .AsNoTracking()
             .Include(a => a.Patient).ThenInclude(p => p!.User)
             .Include(a => a.Doctor).ThenInclude(d => d!.User)
             .OrderByDescending(a => a.CreatedAt)
@@ -63,6 +64,7 @@ public class AdminController : ControllerBase
                 a.AppointmentTime,
                 a.Status,
                 a.Note,
+                a.CancelReason,
                 a.CreatedAt,
                 PatientName = a.Patient!.User!.FullName,
                 DoctorName  = a.Doctor!.User!.FullName,
@@ -87,22 +89,71 @@ public class AdminController : ControllerBase
         if (appointment.Status == "confirmed")
             return BadRequest(new { message = "Lịch đã được xác nhận trước đó" });
 
-        // ✅ Cập nhật trạng thái
         appointment.Status = "confirmed";
 
-        // 🔥 Notify cho bác sĩ (ĐÚNG FLOW)
         _context.Notifications.Add(new Notification
         {
-            UserId    = appointment.DoctorId,
-            Title     = "Lịch khám mới đã được xác nhận",
-            Content   = $"Bệnh nhân {appointment.Patient!.User!.FullName} đặt lịch vào {appointment.AppointmentTime:dd/MM/yyyy HH:mm}",
-            IsRead    = false,
-            CreatedAt = DateTime.Now
+            UserId     = appointment.DoctorId,
+            Title      = "Lịch khám mới đã được xác nhận",
+            Content    = $"Bệnh nhân {appointment.Patient!.User!.FullName} đặt lịch vào {appointment.AppointmentTime:dd/MM/yyyy HH:mm}",
+            IsRead     = false,
+            RelatedUrl = "/doctor/appointments",
+            CreatedAt  = DateTime.Now
+        });
+
+        _context.Notifications.Add(new Notification
+        {
+            UserId     = appointment.PatientId,
+            Title      = "Lịch hẹn đã được duyệt",
+            Content    = $"Lịch hẹn lúc {appointment.AppointmentTime:HH:mm dd/MM/yyyy} đã được xác nhận.",
+            IsRead     = false,
+            RelatedUrl = "/patient/appointments",
+            CreatedAt  = DateTime.Now
         });
 
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Đã xác nhận lịch khám" });
+    }
+
+    public class RejectAppointmentRequest
+    {
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    // PATCH /api/admin/appointments/{id}/reject
+    [HttpPatch("appointments/{id}/reject")]
+    public async Task<IActionResult> RejectAppointment(int id, [FromBody] RejectAppointmentRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Reason))
+            return BadRequest(new { message = "Vui lòng nhập lý do từ chối" });
+
+        var appointment = await _context.Appointments
+            .Include(a => a.Patient).ThenInclude(p => p!.User)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (appointment == null)
+            return NotFound(new { message = "Không tìm thấy lịch khám" });
+
+        if (appointment.Status != "pending")
+            return BadRequest(new { message = "Chỉ có thể từ chối lịch khám đang chờ duyệt" });
+
+        appointment.Status = "cancelled";
+        appointment.CancelReason = req.Reason;
+
+        _context.Notifications.Add(new Notification
+        {
+            UserId     = appointment.PatientId,
+            Title      = "Lịch khám đã bị từ chối",
+            Content    = $"Lịch khám ngày {appointment.AppointmentTime:dd/MM/yyyy HH:mm} của bạn đã bị từ chối. Lý do: {req.Reason}",
+            IsRead     = false,
+            RelatedUrl = "/patient/appointments",
+            CreatedAt  = DateTime.Now
+        });
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Đã từ chối lịch khám" });
     }
 
     // =========================================
@@ -113,8 +164,16 @@ public class AdminController : ControllerBase
     [HttpGet("images")]
     public async Task<IActionResult> GetImages([FromQuery] string? status)
     {
+        var assignments = await _context.ImageAssignments
+            .AsNoTracking()
+            .Include(a => a.Doctor).ThenInclude(d => d!.User)
+            .ToListAsync();
+            
+        var assignmentMap = assignments.GroupBy(a => a.ImageId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.AssignedAt).First());
+
         var query = _context.MedicalImages
-            .Include(m => m.Patient).ThenInclude(p => p!.User)
+            .AsNoTracking()
             .Where(m => !m.IsDeleted);
 
         if (!string.IsNullOrEmpty(status))
@@ -129,19 +188,45 @@ public class AdminController : ControllerBase
                 m.ImageUrl,
                 m.Status,
                 m.UploadDate,
-                PatientName = m.Patient!.User!.FullName,
-                IsAssigned  = _context.ImageAssignments.Any(a => a.ImageId == m.Id)
+                PatientName = m.Patient!.User!.FullName
             })
             .ToListAsync();
 
-        return Ok(images);
+        var result = images.Select(m => {
+            var hasAssignment = assignmentMap.TryGetValue(m.Id, out var assignment);
+            return new
+            {
+                m.Id,
+                m.FileName,
+                m.ImageUrl,
+                m.Status,
+                m.UploadDate,
+                m.PatientName,
+                IsAssigned = hasAssignment,
+                AssignedDoctorId = hasAssignment ? assignment!.DoctorId : (int?)null,
+                AssignedDoctorName = hasAssignment ? assignment!.Doctor!.User!.FullName : null
+            };
+        }).ToList();
+
+        return Ok(result);
     }
 
-    // GET /api/admin/doctors
     [HttpGet("doctors")]
+
     public async Task<IActionResult> GetDoctors()
     {
+        // Lấy số ca pending của từng bác sĩ trong 1 query GROUP BY
+        var assignedCounts = await _context.ImageAssignments
+            .AsNoTracking()
+            .Where(a => a.Status == "pending")
+            .GroupBy(a => a.DoctorId)
+            .Select(g => new { DoctorId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var countLookup = assignedCounts.ToDictionary(x => x.DoctorId, x => x.Count);
+
         var doctors = await _context.Doctors
+            .AsNoTracking()
             .Include(d => d.User)
             .Where(d => d.User!.IsActive && !d.User.IsDeleted)
             .Select(d => new
@@ -151,13 +236,23 @@ public class AdminController : ControllerBase
                 d.User.Email,
                 d.Specialization,
                 d.LicenseNumber,
-                d.YearsOfExperience,
-                AssignedCount = _context.ImageAssignments
-                    .Count(a => a.DoctorId == d.UserId && a.Status == "pending")
+                d.YearsOfExperience
             })
             .ToListAsync();
 
-        return Ok(doctors);
+        // Ghép AssignedCount trong memory (không có N+1)
+        var result = doctors.Select(d => new
+        {
+            d.UserId,
+            d.FullName,
+            d.Email,
+            d.Specialization,
+            d.LicenseNumber,
+            d.YearsOfExperience,
+            AssignedCount = countLookup.GetValueOrDefault(d.UserId, 0)
+        });
+
+        return Ok(result);
     }
 
     // POST /api/admin/images/{id}/assign
@@ -174,6 +269,11 @@ public class AdminController : ControllerBase
         if (doctor == null)
             return NotFound(new { message = "Không tìm thấy bác sĩ" });
 
+        var existingAssignment = await _context.ImageAssignments
+            .FirstOrDefaultAsync(a => a.ImageId == id && a.DoctorId == req.DoctorId);
+        if (existingAssignment != null)
+            return BadRequest(new { message = "Ảnh này đã được phân công cho bác sĩ này rồi!" });
+
         var assignment = new ImageAssignment
         {
             ImageId    = id,
@@ -188,11 +288,12 @@ public class AdminController : ControllerBase
 
         _context.Notifications.Add(new Notification
         {
-            UserId    = req.DoctorId,
-            Title     = "Ca mới được phân công",
-            Content   = $"Bạn được phân công xem xét ảnh #{id}",
-            IsRead    = false,
-            CreatedAt = DateTime.Now
+            UserId     = req.DoctorId,
+            Title      = "Ca mới được phân công",
+            Content    = $"Bạn được phân công xem xét ảnh #{id}",
+            IsRead     = false,
+            RelatedUrl = $"/doctor/cases/{id}",
+            CreatedAt  = DateTime.Now
         });
 
         await _context.SaveChangesAsync();
@@ -216,37 +317,59 @@ public class AdminController : ControllerBase
             .ToListAsync();
 
         var pendingImages = await _context.MedicalImages
-            .Where(m => m.Status == "pending" && !m.IsDeleted && !assignedImageIds.Contains(m.Id))
+            .Where(m => (m.Status == "pending" || m.Status == "processed") && !m.IsDeleted && !assignedImageIds.Contains(m.Id))
             .OrderBy(m => m.UploadDate)
             .ToListAsync();
 
         if (pendingImages.Count == 0)
             return Ok(new { assignedCount = 0, message = "Không có ảnh nào cần phân công" });
 
-        // 2. Lấy danh sách bác sĩ eligible
+        // 2. Lấy danh sách bác sĩ eligible cùng với số ca pending trong 1 pass
+        var pendingCountsRaw = await _context.ImageAssignments
+            .AsNoTracking()
+            .Where(a => a.Status != "completed")
+            .GroupBy(a => a.DoctorId)
+            .Select(g => new { DoctorId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var lastAssignedRaw = await _context.ImageAssignments
+            .AsNoTracking()
+            .GroupBy(a => a.DoctorId)
+            .Select(g => new { DoctorId = g.Key, LastAt = g.Max(a => a.AssignedAt) })
+            .ToListAsync();
+
+        var pendingCountMap = pendingCountsRaw.ToDictionary(x => x.DoctorId, x => x.Count);
+        var lastAssignedMap = lastAssignedRaw.ToDictionary(x => x.DoctorId, x => x.LastAt);
+
         var eligibleDoctors = await _context.Doctors
+            .AsNoTracking()
             .Include(d => d.User)
             .Where(d => d.User!.IsActive && !d.User.IsDeleted)
             .Select(d => new
             {
                 d.UserId,
                 d.User!.FullName,
-                d.Specialization,
-                AssignedCount = _context.ImageAssignments
-                    .Count(a => a.DoctorId == d.UserId && a.Status != "completed"),
-                LastAssignedAt = _context.ImageAssignments
-                    .Where(a => a.DoctorId == d.UserId)
-                    .Max(a => (DateTime?)a.AssignedAt)
+                d.Specialization
             })
             .ToListAsync();
 
-        if (eligibleDoctors.Count == 0)
+        // Ghép count trong memory
+        var eligibleDoctorsWithCount = eligibleDoctors.Select(d => new
+        {
+            d.UserId,
+            d.FullName,
+            d.Specialization,
+            AssignedCount  = pendingCountMap.GetValueOrDefault(d.UserId, 0),
+            LastAssignedAt = lastAssignedMap.TryGetValue(d.UserId, out var la) ? (DateTime?)la : null
+        }).ToList();
+
+        if (eligibleDoctorsWithCount.Count == 0)
             return BadRequest(new { message = "Không có bác sĩ khả dụng" });
 
         // 3. Sắp xếp theo tiêu chí ưu tiên
         var specialtyKeywords = new[] { "phổi", "hô hấp", "x-quang", "chẩn đoán hình ảnh" };
 
-        var sortedDoctors = eligibleDoctors
+        var sortedDoctors = eligibleDoctorsWithCount
             .Select(d => new
             {
                 d.UserId,
@@ -264,12 +387,10 @@ public class AdminController : ControllerBase
 
         // 4. Phân công từng ảnh
         int assignedCount = 0;
-        // Dùng dictionary để track số ca realtime khi phân công
         var currentCounts = sortedDoctors.ToDictionary(d => d.UserId, d => d.AssignedCount);
 
         foreach (var image in pendingImages)
         {
-            // Chọn bác sĩ tốt nhất (re-sort theo currentCounts)
             var bestDoctor = sortedDoctors
                 .OrderByDescending(d => d.SpecialtyScore)
                 .ThenBy(d => currentCounts[d.UserId])
@@ -289,14 +410,14 @@ public class AdminController : ControllerBase
 
             _context.Notifications.Add(new Notification
             {
-                UserId    = bestDoctor.UserId,
-                Title     = "Ca mới được tự động phân công",
-                Content   = $"Bạn được phân công xem xét ảnh #{image.Id}",
-                IsRead    = false,
-                CreatedAt = DateTime.Now
+                UserId     = bestDoctor.UserId,
+                Title      = "Ca mới được tự động phân công",
+                Content    = $"Bạn được phân công xem xét ảnh #{image.Id}",
+                IsRead     = false,
+                RelatedUrl = $"/doctor/cases/{image.Id}",
+                CreatedAt  = DateTime.Now
             });
 
-            // Cập nhật count cho bác sĩ vừa được assign
             currentCounts[bestDoctor.UserId]++;
             assignedCount++;
         }

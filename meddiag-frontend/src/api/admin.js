@@ -19,3 +19,4 @@ export const autoAssignImages = () => api.post("/admin/images/auto-assign");
 export const getAutoAssignStatus = () => api.get("/admin/auto-assign/status");
 
 export const toggleAutoAssign = () => api.post("/admin/auto-assign/toggle");
+

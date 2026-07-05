@@ -25,6 +25,7 @@ public class NotificationController : ControllerBase
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         var notifications = await _context.Notifications
+            .AsNoTracking()
             .Where(n => n.UserId == userId)
             .OrderByDescending(n => n.CreatedAt)
             .Select(n => new
@@ -33,6 +34,7 @@ public class NotificationController : ControllerBase
                 n.Title,
                 n.Content,
                 n.IsRead,
+                n.RelatedUrl,
                 n.CreatedAt
             })
             .ToListAsync();
